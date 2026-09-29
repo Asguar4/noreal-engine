@@ -41,8 +41,8 @@ namespace riz {
     }
 
     glfwSetKeyCallback(window, keyCallback);
-    //glfwSetCursorPosCallback(window, mouseCallback);
-    //glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouseCallback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glViewport(0, 0, 800, 600);
 
     batch.init(pathVert, pathFrag);

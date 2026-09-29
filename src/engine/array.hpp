@@ -113,17 +113,11 @@ namespace riz {
 
   template< class Elem >
   Elem& Array<Elem>::operator[](size_t index) {
-    if (index >= used) {
-      throw std::out_of_range("Array index out of range");
-    }
     return *(array + index);
   }
 
   template< class Elem>
   const Elem& Array<Elem>::operator[](size_t index) const {
-    if (index >= used) {
-      throw std::out_of_range("Array index out of range");
-    }
     return *(array + index);
   }
 
@@ -159,6 +153,6 @@ namespace riz {
 
   template< class Elem >
   size_t Array<Elem>::size() const noexcept {
-    return used;
+    return capacity;
   }
 }
