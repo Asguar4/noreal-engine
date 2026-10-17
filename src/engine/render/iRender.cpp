@@ -1,72 +1,141 @@
-#include <iostream>
+#include <algorithm>
+#include <cstddef>
+#include <stdexcept>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
 
 #include "./iRender.hpp"
-#include "../array.hpp"
+#include "../../containers/array.hpp"
 #include "../io.hpp"
 
-static GLuint renderShaderCreate(const std::string& pathShader, GLenum type) {
-  GLint success;
-  GLchar log[512];
+namespace {
+  // Delete the GL object on scope exit unless the id was zeroed (ownership handed over).
+  struct ShaderGuard {
+    GLuint id;
+    ~ShaderGuard() { if (id) glDeleteShader(id); }
+  };
 
-  riz::File fileShader(pathShader);
-  if (!fileShader.valid()) {
-    std::cerr << "Error reading shader: " << pathShader << std::endl;
-    exit(1);
+  struct ProgramGuard {
+    GLuint id;
+    ~ProgramGuard() { if (id) glDeleteProgram(id); }
+  };
+
+  std::string shaderInfoLog(GLuint shader) {
+    GLint len = 0;
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &len);
+    if (len <= 1) return std::string();
+    std::vector<GLchar> log(static_cast<std::size_t>(len));
+    glGetShaderInfoLog(shader, len, nullptr, log.data());
+    return std::string(log.data());
   }
-  GLuint shader = glCreateShader(type);
-  
-  const char * sourceShader = fileShader.getData();
-  glShaderSource(shader, 1, &sourceShader, nullptr);
-  glCompileShader(shader);
 
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-  if (!success) {
-    glGetShaderInfoLog(shader, 512, nullptr, log);
-    std::cerr << "Error compiling shader: " << log << std::endl;
-    exit(1);
+  std::string programInfoLog(GLuint program) {
+    GLint len = 0;
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &len);
+    if (len <= 1) return std::string();
+    std::vector<GLchar> log(static_cast<std::size_t>(len));
+    glGetProgramInfoLog(program, len, nullptr, log.data());
+    return std::string(log.data());
   }
 
-  return shader;
-}
-
-static GLuint shaderProgramCreate(const std::string& pathVert, const std::string& pathFrag) {
-    GLint success;
-    GLchar log[512];
-    
-    GLuint vertexShader = renderShaderCreate(pathVert, GL_VERTEX_SHADER);
-    GLuint fragmentShader = renderShaderCreate(pathFrag, GL_FRAGMENT_SHADER);
-
-    GLuint shader = glCreateProgram();
-    glAttachShader(shader, vertexShader);
-    glAttachShader(shader, fragmentShader);
-    glLinkProgram(shader);
-
-    glGetProgramiv(shader, GL_LINK_STATUS, &success);
-    if (!success) {
-      glGetProgramInfoLog(shader, 512, nullptr, log);
-      std::cerr << "Error linking shader: " << log << std::endl;
-      exit(1);
+  GLuint renderShaderCreate(const std::string& pathShader, GLenum type) {
+    riz::File fileShader(pathShader);
+    if (!fileShader.valid()) {
+      throw std::runtime_error("Error reading shader: " + pathShader);
     }
 
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    ShaderGuard guard { glCreateShader(type) };
+    if (!guard.id) {
+      throw std::runtime_error("glCreateShader failed for: " + pathShader);
+    }
 
-    return shader;
+    const char * sourceShader = fileShader.getData();
+    glShaderSource(guard.id, 1, &sourceShader, nullptr);
+    glCompileShader(guard.id);
+
+    GLint success = 0;
+    glGetShaderiv(guard.id, GL_COMPILE_STATUS, &success);
+    if (!success) {
+      throw std::runtime_error("Error compiling shader " + pathShader + ": " + shaderInfoLog(guard.id));
+    }
+
+    const GLuint result = guard.id;
+    guard.id = 0;
+    return result;
+  }
+
+  GLuint shaderProgramCreate(const std::string& pathVert, const std::string& pathFrag) {
+    ShaderGuard vertexShader { renderShaderCreate(pathVert, GL_VERTEX_SHADER) };
+    ShaderGuard fragmentShader { renderShaderCreate(pathFrag, GL_FRAGMENT_SHADER) };
+
+    ProgramGuard program { glCreateProgram() };
+    if (!program.id) {
+      throw std::runtime_error("glCreateProgram failed");
+    }
+    glAttachShader(program.id, vertexShader.id);
+    glAttachShader(program.id, fragmentShader.id);
+    glLinkProgram(program.id);
+
+    GLint success = 0;
+    glGetProgramiv(program.id, GL_LINK_STATUS, &success);
+    if (!success) {
+      throw std::runtime_error("Error linking shader program: " + programInfoLog(program.id));
+    }
+
+    glDetachShader(program.id, vertexShader.id);
+    glDetachShader(program.id, fragmentShader.id);
+
+    const GLuint result = program.id;
+    program.id = 0;
+    return result;
+  }
 }
 
 namespace riz {
+  // ---- RenderLine ----
+
+  RenderLine::~RenderLine() {
+    release();
+  }
+
+  RenderLine::RenderLine(RenderLine&& other) noexcept
+    : vao(other.vao), vbo(other.vbo), shader(other.shader) {
+    other.vao = 0;
+    other.vbo = 0;
+    other.shader = 0;
+  }
+
+  RenderLine& RenderLine::operator=(RenderLine&& other) noexcept {
+    if (this != &other) {
+      release();
+      vao = other.vao;
+      vbo = other.vbo;
+      shader = other.shader;
+      other.vao = 0;
+      other.vbo = 0;
+      other.shader = 0;
+    }
+    return *this;
+  }
+
+  void RenderLine::release() noexcept {
+    if (vbo) { glDeleteBuffers(1, &vbo); vbo = 0; }
+    if (vao) { glDeleteVertexArrays(1, &vao); vao = 0; }
+    if (shader) { glDeleteProgram(shader); shader = 0; }
+  }
+
   void RenderLine::lineCreate() {
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), nullptr);
     glEnableVertexAttribArray(0);
@@ -76,32 +145,64 @@ namespace riz {
   }
 
   void RenderLine::init(const std::string& pathVert, const std::string& pathFrag) {
+    release();
     shader = shaderProgramCreate(pathVert, pathFrag);
     lineCreate();
   }
 
-  void RenderLine::draw(const riz::Array<glm::vec2>& vertices) {
+  void RenderLine::draw(const Vector<glm::vec2>& vertices) {
+    if (vertices.size() < 2) return;
+
     glUseProgram(shader);
-    glLineWidth(3);
-
-    float x = vertices[0][0] - vertices[1][0];
-    float y = vertices[0][1] - vertices[1][1];
-
     glBindVertexArray(vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 2, &vertices[0], GL_STATIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec2) * 2, &vertices[0]);
     glDrawArrays(GL_LINES, 0, 2);
 
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
   }
 
-  void RenderBatch::batchCreate() {
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+  // ---- RenderBatch ----
 
-    GLuint indices[MAX_BATCH_ELEMENTS];
-    for (GLuint i = 0, offset = 0; i < MAX_BATCH_ELEMENTS; i += 6, offset += 4) {
+  RenderBatch::~RenderBatch() {
+    release();
+  }
+
+  RenderBatch::RenderBatch(RenderBatch&& other) noexcept
+    : vao(other.vao), vbo(other.vbo), ebo(other.ebo), shader(other.shader) {
+    other.vao = 0;
+    other.vbo = 0;
+    other.ebo = 0;
+    other.shader = 0;
+  }
+
+  RenderBatch& RenderBatch::operator=(RenderBatch&& other) noexcept {
+    if (this != &other) {
+      release();
+      vao = other.vao;
+      vbo = other.vbo;
+      ebo = other.ebo;
+      shader = other.shader;
+      other.vao = 0;
+      other.vbo = 0;
+      other.ebo = 0;
+      other.shader = 0;
+    }
+    return *this;
+  }
+
+  void RenderBatch::release() noexcept {
+    if (ebo) { glDeleteBuffers(1, &ebo); ebo = 0; }
+    if (vbo) { glDeleteBuffers(1, &vbo); vbo = 0; }
+    if (vao) { glDeleteVertexArrays(1, &vao); vao = 0; }
+    if (shader) { glDeleteProgram(shader); shader = 0; }
+  }
+
+  void RenderBatch::batchCreate() {
+    std::vector<GLuint> indices(MAX_BATCH_ELEMENTS);
+    for (GLuint i = 0, offset = 0; i + 6 <= MAX_BATCH_ELEMENTS; i += 6, offset += 4) {
       indices[i + 0] = offset + 0;
       indices[i + 1] = offset + 1;
       indices[i + 2] = offset + 3;
@@ -110,16 +211,19 @@ namespace riz {
       indices[i + 5] = offset + 2;
     }
 
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, MAX_BATCH_VERTICES * sizeof(glm::vec2), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, MAX_BATCH_VERTICES * sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), nullptr);
 
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_BATCH_ELEMENTS * sizeof(GLuint), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_BATCH_ELEMENTS * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -127,17 +231,30 @@ namespace riz {
   }
 
   void RenderBatch::init(const std::string& pathVert, const std::string& pathFrag) {
+    release();
     shader = shaderProgramCreate(pathVert, pathFrag);
-    batchCreate();
+    try {
+      batchCreate();
+    } catch (...) {
+      release();
+      throw;
+    }
   }
 
-  void RenderBatch::draw(const riz::Array<glm::vec2>& vertices) {
+  void RenderBatch::draw(const Vector<glm::vec2>& vertices) {
+    const std::size_t maxVerts = (MAX_BATCH_VERTICES / 4) * 4;
+    const std::size_t count = std::min(vertices.size(), maxVerts) / 4 * 4;
+    if (count == 0) return;
+
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec2), &vertices[0], GL_STATIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(count * sizeof(glm::vec2)), &vertices[0]);
 
     glUseProgram(shader);
     glBindVertexArray(vao);
 
-    glDrawElements(GL_TRIANGLES, (vertices.size() >> 2) * 6, GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>((count / 4) * 6), GL_UNSIGNED_INT, nullptr);
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
   }
 }

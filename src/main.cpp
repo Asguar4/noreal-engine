@@ -1,10 +1,13 @@
 #include <iostream>
 #include <cmath>
+#include <cstdlib>
+#include <exception>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
+#include <glm/trigonometric.hpp>
 
 #include "engine/render.hpp"
 #include "engine/entity.hpp"
@@ -16,13 +19,13 @@ static bool d = false;
 static bool o = false;
 static bool p = false;
 
-static float lastX = 0.0;
-static float lastY = 0.0;
-static float mousedx = 0.0;
-static float mousedy = 0.0;
+static double lastX = 0.0;
+static double lastY = 0.0;
+static float mousedx = 0.f;
+static float mousedy = 0.f;
 static bool firstMouse = true;
 
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode) {
+void keyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mode*/) {
   if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
     glfwSetWindowShouldClose(window, GL_TRUE);
   }
@@ -50,15 +53,15 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
   }
 }
 
-void mouseCallback(GLFWwindow* window, double xpos, double ypos) {
+void mouseCallback(GLFWwindow* /*window*/, double xpos, double ypos) {
   if (firstMouse) {
     lastX = xpos;
     lastY = ypos;
     firstMouse = false;
   }
 
-  mousedx = xpos - lastX;
-  mousedy = lastY - ypos;
+  mousedx += static_cast<float>(xpos - lastX);
+  mousedy += static_cast<float>(lastY - ypos);
 
   lastX = xpos;
   lastY = ypos;
@@ -71,40 +74,45 @@ struct Entity {
 };
 
 int main() {
-  riz::Renderer render("./shaders/default.vert", "./shaders/default.frag");
+  try {
+    riz::Renderer render("./shaders/default.vert", "./shaders/default.frag");
 
-  Entity player = { {0, 0}, {0}, {30} };
-  riz::Array<glm::vec3> walls {
-    glm::vec3 { 3, 5, 4},
-    glm::vec3 {-3, 5, 4}
-  };
-  riz::Camera cum(30);
+    Entity player = { {0, 0}, 0, 30 };
+    riz::Vector<glm::vec3> walls {
+      glm::vec3 { 3, 5, 4},
+      glm::vec3 {-3, 5, 4}
+    };
+    riz::Camera cam(glm::radians(player.fov));
 
-  float move = 0.005;
+    const float move = 0.005f;
 
-  while (!render.windowClose()) {
-    render.begin();
+    while (!render.windowClose()) {
+      render.begin();
 
-    riz::Array<glm::vec2> vertices = cum.worldToScreen(walls);
+      float mf = (w ? 1.f : 0.f) - (s ? 1.f : 0.f);
+      float mr = (d ? 1.f : 0.f) - (a ? 1.f : 0.f);
 
-    float mf = (w ? 1.f : 0.f) - (s ? 1.f : 0.f);
-    float mr = (a ? 1.f : 0.f) - (d ? 1.f : 0.f);
+      float dx = mf * std::sin(player.angle) + mr * std::cos(player.angle);
+      float dy = mf * std::cos(player.angle) - mr * std::sin(player.angle);
 
-    float dx = mf * sin(player.angle) + mr * cos(player.angle);
-    float dy = mf * cos(player.angle) - mr * sin(player.angle);
+      player.pos[0] += dx * move;
+      player.pos[1] += dy * move;
 
-    player.pos[0] += dx * move;
-    player.pos[1] += dy * move;
+      player.angle += mousedx * 0.002f;
+      mousedx = 0.f;
 
-    player.angle -= mousedx * 0.002;
-    mousedx = 0.0;
+      cam.setPosition(player.pos);
+      cam.setAngle(player.angle);
 
-    cum.setPosition(player.pos);
-    cum.setAngle(player.angle);
+      riz::Vector<glm::vec2> vertices = cam.worldToScreen(walls);
 
-    render.update(vertices);
+      render.update(vertices);
 
-    render.end();
+      render.end();
+    }
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
+    return EXIT_FAILURE;
   }
 
   return 0;

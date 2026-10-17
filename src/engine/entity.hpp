@@ -1,8 +1,9 @@
 #pragma once
 
 #include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
 
-#include "./array.hpp"
+#include "../containers/array.hpp"
 
 namespace riz {
   struct Wall {
@@ -35,7 +36,8 @@ namespace riz {
   public:
     Camera(float initFov);
 
-    Array<glm::vec2> worldToScreen(Array<glm::vec3> walls) const;
+    // initFov is in radians. Consecutive pairs of walls points form one wall.
+    Vector<glm::vec2> worldToScreen(const Vector<glm::vec3>& walls) const;
 
     void setPosition(glm::vec2 pos);
     void setAngle(float newAngle);

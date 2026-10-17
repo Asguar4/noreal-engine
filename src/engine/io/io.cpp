@@ -1,58 +1,59 @@
-#include <iostream>
+#include <cstddef>
 #include <fstream>
+#include <iostream>
+#include <memory>
 #include <string>
-#include <algorithm>
+#include <vector>
 
 #include "../io.hpp"
 
-static char * resize(char * data, const size_t used, const size_t size) {
-  char * result = new char[size];
-  for (size_t i = 0; i < std::min(size, used); ++i) {
-    result[i] = data[i];
-  }
-  delete[] data;
-
-  return result;
-} 
+namespace {
+  // Shared immutable empty string, returned for invalid / moved-from objects.
+  const char kEmpty[1] = { '\0' };
+}
 
 namespace riz {
   File::File(const std::string& path) {
-    data = new char[1];
-
     std::ifstream fp(path, std::ios::binary);
     if (!fp.is_open()) {
       std::cerr << "error reading file: " << path << std::endl;
       return;
     }
 
-    const size_t chunkSize = 1024 * 1024;
-    char * tmp = new char[chunkSize];
+    const std::size_t chunkSize = 1024 * 1024;
+    std::unique_ptr<char[]> tmp(new char[chunkSize]);
+    std::vector<char> content;
 
-    while (fp.read(tmp, chunkSize) || fp.gcount() > 0) {
-      const size_t used = static_cast<size_t>(fp.gcount());
-      data = resize(data, size, size + used + 1);
-      for (size_t i = size; i < size + used; ++i) {
-        data[i] = tmp[i - size];
-      }
-      size += used;
+    while (fp.read(tmp.get(), chunkSize) || fp.gcount() > 0) {
+      const std::size_t used = static_cast<std::size_t>(fp.gcount());
+      content.insert(content.end(), tmp.get(), tmp.get() + used);
     }
-    delete[] tmp;
 
-    data[size] = '\0';
+    std::unique_ptr<char[]> buf(new char[content.size() + 1]);
+    for (std::size_t i = 0; i < content.size(); ++i) {
+      buf[i] = content[i];
+    }
+    buf[content.size()] = '\0';
+
+    size = content.size();
+    data = buf.release();
     isValid = true;
   }
 
   File::File(const File& other) {
-    data = new char[other.size + 1];
-    for (size_t i = 0; i < other.size; ++i) {
-      data[i] = other.data[i];
+    if (other.data) {
+      std::unique_ptr<char[]> buf(new char[other.size + 1]);
+      for (std::size_t i = 0; i < other.size; ++i) {
+        buf[i] = other.data[i];
+      }
+      buf[other.size] = '\0';
+      data = buf.release();
     }
-    data[other.size] = '\0';
     size = other.size;
     isValid = other.isValid;
   }
 
-  File::File(File&& other) {
+  File::File(File&& other) noexcept {
     data = other.data;
     size = other.size;
     isValid = other.isValid;
@@ -67,11 +68,15 @@ namespace riz {
 
   File& File::operator=(const File& other) {
     if (this != &other) {
-      char * newData = new char[other.size + 1];
-      for (size_t i = 0; i < other.size; ++i) {
-        newData[i] = other.data[i];
+      char * newData = nullptr;
+      if (other.data) {
+        std::unique_ptr<char[]> buf(new char[other.size + 1]);
+        for (std::size_t i = 0; i < other.size; ++i) {
+          buf[i] = other.data[i];
+        }
+        buf[other.size] = '\0';
+        newData = buf.release();
       }
-      newData[other.size] = '\0';
 
       delete[] data;
       data = newData;
@@ -81,7 +86,7 @@ namespace riz {
     return *this;
   }
 
-  File& File::operator=(File&& other) {
+  File& File::operator=(File&& other) noexcept {
     if (this != &other) {
       delete[] data;
       data = other.data;
@@ -95,10 +100,10 @@ namespace riz {
   }
 
   const char * File::getData() const {
-    return data;
+    return data ? data : kEmpty;
   }
 
-  size_t File::getSize() const {
+  std::size_t File::getSize() const {
     return size;
   }
 

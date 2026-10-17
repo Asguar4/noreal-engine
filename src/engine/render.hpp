@@ -6,7 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
 
-#include "./array.hpp"
+#include "../containers/array.hpp"
 #include "./render/iRender.hpp"
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -14,9 +14,9 @@ void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 
 namespace riz {
   class Renderer {
-    Array<glm::vec2> vertices;
+    Vector<glm::vec2> vertices;
     RenderBatch batch;
-    GLFWwindow * window;
+    GLFWwindow * window = nullptr;
 
     void createWindow();
   public:
@@ -24,8 +24,13 @@ namespace riz {
 
     ~Renderer();
 
+    Renderer(const Renderer&) = delete;
+    Renderer& operator=(const Renderer&) = delete;
+    Renderer(Renderer&&) = delete;
+    Renderer& operator=(Renderer&&) = delete;
+
     void begin();
-    void update(Array<glm::vec2>& newVert);
+    void update(Vector<glm::vec2>& newVert);
     void end();
 
     bool windowClose();

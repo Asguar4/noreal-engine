@@ -2,3 +2,6 @@ include/
 lib/
 
 *.bat
+build/
+.claude/
+.workflow
