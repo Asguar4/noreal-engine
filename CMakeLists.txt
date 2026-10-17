@@ -49,11 +49,13 @@ add_library(riz_engine STATIC
   src/engine/camera/camera.cpp
   src/engine/camera/topDownCamera.cpp
   src/engine/input/input.cpp
+  src/engine/loop/loop.cpp
   src/engine/platform/platform.cpp
   src/engine/render/render.cpp
   src/engine/render/renderBatch.cpp)
 riz_stage_headers(RIZ_ENGINE_PUBLIC_DIR riz_engine_public
   engine/camera.hpp engine/topDownCamera.hpp engine/input.hpp
+  engine/loop.hpp
   engine/io.hpp engine/platform.hpp engine/render.hpp engine/wallQuad.hpp)
 target_include_directories(riz_engine PUBLIC "${RIZ_ENGINE_PUBLIC_DIR}")
 target_link_libraries(riz_engine PUBLIC riz_glm PRIVATE riz_glew riz_glfw OpenGL::GL)

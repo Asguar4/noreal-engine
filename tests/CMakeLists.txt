@@ -12,7 +12,8 @@ add_executable(riz_tests
   camera_test.cpp
   top_down_camera_test.cpp
   input_test.cpp
-  platform_test.cpp)
+  platform_test.cpp
+  loop_test.cpp)
 target_link_libraries(riz_tests PRIVATE riz_engine riz_glfw GTest::gtest_main)
 riz_stage_headers(RIZ_TESTS_WHITEBOX_DIR riz_tests_whitebox engine/platform/iPlatform.hpp)
 target_include_directories(riz_tests PRIVATE "${RIZ_TESTS_WHITEBOX_DIR}")
