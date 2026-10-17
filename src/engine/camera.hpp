@@ -5,6 +5,8 @@
 
 #include <vector>
 
+#include "./wallQuad.hpp"
+
 namespace riz {
   class Camera {
     glm::vec2 pos;
@@ -13,9 +15,9 @@ namespace riz {
   public:
     Camera(float initFov);
 
-    std::vector<glm::vec2> worldToScreen(const std::vector<glm::vec3>& walls) const;
+    std::vector<WallQuad> worldToScreen(const std::vector<glm::vec3>& walls) const;
 
-    void worldToScreen(const std::vector<glm::vec3>& walls, std::vector<glm::vec2>& out) const;
+    void worldToScreen(const std::vector<glm::vec3>& walls, std::vector<WallQuad>& out) const;
 
     void setPosition(glm::vec2 pos);
     void setAngle(float newAngle);

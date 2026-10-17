@@ -2,6 +2,7 @@
 
 #include <GL/glew.h>
 
+#include <array>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -29,13 +30,11 @@ riz::WindowConfig hiddenConfig() {
   return riz::WindowConfig{64, 64, "t", false, false, false};
 }
 
-std::vector<glm::vec2> verts(size_t n) {
-  std::vector<glm::vec2> v;
-  v.resize(n, glm::vec2{0.f, 0.f});
-  for (size_t i = 0; i < n; ++i)
-    v[i] = glm::vec2{(i % 4 < 2) ? -0.5f : 0.5f, (i % 2) ? -0.5f : 0.5f};
-  return v;
+std::vector<riz::WallQuad> quads(size_t n) {
+  return std::vector<riz::WallQuad>(n, riz::WallQuad{{-0.5f, 0.5f}, {-0.5f, -0.5f}, {0.5f, 0.5f}, {0.5f, -0.5f}});
 }
+
+const riz::WallQuad kFullScreen{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
 
 bool anyVao() {
   for (GLuint i = 1; i < 32; ++i) if (glIsVertexArray(i)) return true;
@@ -73,7 +72,7 @@ TEST_F(GL, BatchInitReleaseHandles) {
   RenderBatch b;
   b.init(kVert, kFrag);
   ASSERT_EQ(glGetError(), GL_NO_ERROR);
-  b.draw(verts(4));
+  b.draw(quads(1));
   GLuint prog = currentProgram();
   EXPECT_TRUE(glIsProgram(prog));
   EXPECT_TRUE(anyBuf());
@@ -92,7 +91,7 @@ TEST_F(GL, BatchMove) {
   {
     RenderBatch b;
     b.init(kVert, kFrag);
-    b.draw(verts(4));
+    b.draw(quads(1));
     prog = currentProgram();
     RenderBatch c(std::move(b));
     {
@@ -111,15 +110,15 @@ TEST_F(GL, BatchMove) {
 TEST_F(GL, DrawVariousCounts) {
   RenderBatch b;
   b.init(kVert, kFrag);
-  b.draw(std::vector<glm::vec2>{});
+  b.draw(std::vector<riz::WallQuad>{});
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
-  b.draw(verts(3));
+  b.draw(quads(2));
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
-  b.draw(verts(8));
+  b.draw(quads(1));
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
-  b.draw(verts(4));
+  b.draw(quads(riz::kMaxBatchQuads));
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
-  b.draw(verts(riz::kMaxBatchVertices + 4));
+  b.draw(quads(riz::kMaxBatchQuads + 1));
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
 }
 
@@ -129,12 +128,27 @@ TEST_F(GL, DrawPixels) {
   glClear(GL_COLOR_BUFFER_BIT);
   RenderBatch b;
   b.init(kVert, kFrag);
-  std::vector<glm::vec2> v{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
-  b.draw(v);
+  b.draw(std::vector<riz::WallQuad>{kFullScreen});
   unsigned char px[4] = {0, 0, 0, 0};
   glReadPixels(32, 32, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, px);
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
   EXPECT_TRUE(px[0] || px[1] || px[2]) << "full-screen quad drew nothing";
+}
+
+TEST_F(GL, DrawPixelsCoversWholeQuad) {
+  glViewport(0, 0, 64, 64);
+  glClearColor(0, 0, 0, 1);
+  glClear(GL_COLOR_BUFFER_BIT);
+  RenderBatch b;
+  b.init(kVert, kFrag);
+  b.draw(std::vector<riz::WallQuad>{kFullScreen});
+  const int pts[5][2] = {{32, 32}, {32, 3}, {32, 60}, {3, 32}, {60, 32}};
+  for (const auto& p : pts) {
+    unsigned char px[4] = {0, 0, 0, 0};
+    glReadPixels(p[0], p[1], 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, px);
+    EXPECT_TRUE(px[0] || px[1] || px[2]) << p[0] << "," << p[1];
+  }
+  EXPECT_EQ(glGetError(), GL_NO_ERROR);
 }
 
 TEST_F(GL, MissingShaderThrowsWithPath) {
@@ -177,7 +191,7 @@ TEST(GLRenderer, ConstructTwiceAndFrame) {
       Renderer r(win.framebufferSize(), kVert, kFrag);
       EXPECT_EQ(glGetError(), GL_NO_ERROR);
       r.begin();
-      std::vector<glm::vec2> v{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
+      std::vector<riz::WallQuad> v{kFullScreen};
       win.pollEvents();
       r.draw(v);
       win.swapBuffers();
@@ -200,4 +214,22 @@ TEST(GLRenderer, MissingShaderThrowsAndGlfwUsable) {
   std::unique_ptr<riz::Window> win2;
   ASSERT_NO_THROW(win2 = std::make_unique<riz::Window>(hiddenConfig()));
   ASSERT_NO_THROW(riz::loadGlFunctions());
+}
+
+TEST(RenderQuadLayout, IndexPattern) {
+  const std::array<GLuint, 6> expected = {0, 1, 3, 0, 3, 2};
+  EXPECT_EQ(riz::kQuadIndices, expected);
+  EXPECT_EQ(riz::kQuadStartTop, 0u);
+  EXPECT_EQ(riz::kQuadStartBottom, 1u);
+  EXPECT_EQ(riz::kQuadEndTop, 2u);
+  EXPECT_EQ(riz::kQuadEndBottom, 3u);
+}
+
+TEST(RenderQuadLayout, VertexOrder) {
+  const riz::WallQuad q{{1, 2}, {3, 4}, {5, 6}, {7, 8}};
+  const auto v = riz::quadVertices(q);
+  EXPECT_EQ(v[0], q.startTop);
+  EXPECT_EQ(v[1], q.startBottom);
+  EXPECT_EQ(v[2], q.endTop);
+  EXPECT_EQ(v[3], q.endBottom);
 }

@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <stdexcept>
 #include <string>
@@ -87,13 +88,10 @@ namespace riz {
 
   void RenderBatch::batchCreate() {
     std::vector<GLuint> indices(kMaxBatchElements);
-    for (std::size_t i = 0, offset = 0; i + 6 <= kMaxBatchElements; i += 6, offset += 4) {
-      indices[i + 0] = static_cast<GLuint>(offset + 0);
-      indices[i + 1] = static_cast<GLuint>(offset + 1);
-      indices[i + 2] = static_cast<GLuint>(offset + 3);
-      indices[i + 3] = static_cast<GLuint>(offset + 0);
-      indices[i + 4] = static_cast<GLuint>(offset + 3);
-      indices[i + 5] = static_cast<GLuint>(offset + 2);
+    for (std::size_t q = 0; q < kMaxBatchQuads; ++q) {
+      for (std::size_t k = 0; k < kQuadIndices.size(); ++k) {
+        indices[q * kQuadIndices.size() + k] = static_cast<GLuint>(q * kQuadVertexCount + kQuadIndices[k]);
+      }
     }
 
     GLuint id = 0;
@@ -131,18 +129,23 @@ namespace riz {
     }
   }
 
-  void RenderBatch::draw(const std::vector<glm::vec2>& vertices) {
-    const std::size_t maxVerts = (kMaxBatchVertices / 4) * 4;
-    const std::size_t count = std::min(vertices.size(), maxVerts) / 4 * 4;
+  void RenderBatch::draw(const std::vector<WallQuad>& quads) {
+    const std::size_t count = std::min(quads.size(), kMaxBatchQuads);
     if (count == 0) return;
 
+    staging.resize(count * kQuadVertexCount);
+    for (std::size_t i = 0; i < count; ++i) {
+      const std::array<glm::vec2, kQuadVertexCount> v = quadVertices(quads[i]);
+      std::copy(v.begin(), v.end(), staging.begin() + static_cast<std::ptrdiff_t>(i * kQuadVertexCount));
+    }
+
     glBindBuffer(GL_ARRAY_BUFFER, vbo.get());
-    glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(count * sizeof(glm::vec2)), vertices.data());
+    glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(count * kQuadVertexCount * sizeof(glm::vec2)), staging.data());
 
     glUseProgram(program.get());
     glBindVertexArray(vao.get());
 
-    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>((count / 4) * 6), GL_UNSIGNED_INT, nullptr);
+    glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(count * kQuadIndices.size()), GL_UNSIGNED_INT, nullptr);
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);

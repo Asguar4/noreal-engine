@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
@@ -8,6 +10,7 @@
 #include <glm/vec2.hpp>
 
 #include "../render.hpp"
+#include "../wallQuad.hpp"
 
 namespace riz {
   template <typename Traits>
@@ -47,11 +50,34 @@ namespace riz {
   using GlShader = GlHandle<GlShaderTraits>;
   using GlProgram = GlHandle<GlProgramTraits>;
 
+  inline constexpr std::size_t kQuadStartTop = 0;
+  inline constexpr std::size_t kQuadStartBottom = 1;
+  inline constexpr std::size_t kQuadEndTop = 2;
+  inline constexpr std::size_t kQuadEndBottom = 3;
+  inline constexpr std::size_t kQuadVertexCount = 4;
+
+  inline constexpr std::array<GLuint, 6> kQuadIndices = {
+    kQuadStartTop, kQuadStartBottom, kQuadEndBottom,
+    kQuadStartTop, kQuadEndBottom, kQuadEndTop };
+
+  inline std::array<glm::vec2, kQuadVertexCount> quadVertices(const WallQuad& quad) noexcept {
+    std::array<glm::vec2, kQuadVertexCount> v;
+    v[kQuadStartTop] = quad.startTop;
+    v[kQuadStartBottom] = quad.startBottom;
+    v[kQuadEndTop] = quad.endTop;
+    v[kQuadEndBottom] = quad.endBottom;
+    return v;
+  }
+
+  static_assert(kMaxBatchVertices == kMaxBatchQuads * kQuadVertexCount, "batch vertex limit");
+  static_assert(kMaxBatchElements == kMaxBatchQuads * kQuadIndices.size(), "batch element limit");
+
   class RenderBatch {
     GlProgram program;
     GlVertexArray vao;
     GlBuffer vbo;
     GlBuffer ebo;
+    std::vector<glm::vec2> staging;
 
     void batchCreate();
   public:
@@ -64,7 +90,7 @@ namespace riz {
     RenderBatch& operator=(RenderBatch&&) noexcept = default;
 
     void init(const std::string& pathVert, const std::string& pathFrag);
-    void draw(const std::vector<glm::vec2>& vertices);
+    void draw(const std::vector<WallQuad>& quads);
     void release() noexcept;
   };
 }

@@ -149,8 +149,8 @@ TEST(TopDownCamera, RotationMatchesCameraConvention) {
       const glm::vec2 b0 = p + 6.f * fwd + 1.f * right;
       std::vector<glm::vec3> walls{{a0.x, a0.y, 1.f}, {b0.x, b0.y, 1.f}};
       const auto r = cam.worldToScreen(walls);
-      ASSERT_EQ(r.size(), 4u);
-      EXPECT_GT(r[0].x, 0.f);
+      ASSERT_EQ(r.size(), 1u);
+      EXPECT_GT(r[0].startTop.x, 0.f);
       EXPECT_GT(top.worldToScreen(a0).x, 0.f);
       EXPECT_GT(top.worldToScreen(b0).x, 0.f);
     }

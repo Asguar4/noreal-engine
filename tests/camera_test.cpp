@@ -10,17 +10,30 @@
 
 namespace {
 constexpr float kEps = 1e-5f;
+
+bool sameQuad(const riz::WallQuad& a, const riz::WallQuad& b) {
+  return a.startTop == b.startTop && a.startBottom == b.startBottom &&
+         a.endTop == b.endTop && a.endBottom == b.endBottom;
+}
+
+bool finiteQuad(const riz::WallQuad& q) {
+  return std::isfinite(q.startTop.x) && std::isfinite(q.startTop.y) &&
+         std::isfinite(q.startBottom.x) && std::isfinite(q.startBottom.y) &&
+         std::isfinite(q.endTop.x) && std::isfinite(q.endTop.y) &&
+         std::isfinite(q.endBottom.x) && std::isfinite(q.endBottom.y);
+}
 }
 
 TEST(Camera, BasicProjection) {
   riz::Camera cam(glm::radians(90.f));
   std::vector<glm::vec3> w{{3, 5, 4}, {-3, 5, 4}};
   auto r = cam.worldToScreen(w);
-  ASSERT_EQ(r.size(), 4u);
+  ASSERT_EQ(r.size(), 1u);
   const glm::vec2 e[4] = {{0.6f, 0.8f}, {0.6f, -0.8f}, {-0.6f, 0.8f}, {-0.6f, -0.8f}};
+  const glm::vec2 got[4] = {r[0].startTop, r[0].startBottom, r[0].endTop, r[0].endBottom};
   for (size_t i = 0; i < 4; ++i) {
-    EXPECT_NEAR(r[i].x, e[i].x, kEps) << i;
-    EXPECT_NEAR(r[i].y, e[i].y, kEps) << i;
+    EXPECT_NEAR(got[i].x, e[i].x, kEps) << i;
+    EXPECT_NEAR(got[i].y, e[i].y, kEps) << i;
   }
 }
 
@@ -29,8 +42,11 @@ TEST(Camera, RotatedDepth) {
   cam.setAngle(glm::half_pi<float>());
   std::vector<glm::vec3> w{{5, 1, 1}, {5, -1, 1}};
   auto r = cam.worldToScreen(w);
-  ASSERT_EQ(r.size(), 4u);
-  for (size_t i = 0; i < 4; ++i) EXPECT_NEAR(std::fabs(r[i].y), 0.2f, kEps);
+  ASSERT_EQ(r.size(), 1u);
+  EXPECT_NEAR(std::fabs(r[0].startTop.y), 0.2f, kEps);
+  EXPECT_NEAR(std::fabs(r[0].startBottom.y), 0.2f, kEps);
+  EXPECT_NEAR(std::fabs(r[0].endTop.y), 0.2f, kEps);
+  EXPECT_NEAR(std::fabs(r[0].endBottom.y), 0.2f, kEps);
 }
 
 TEST(Camera, BothBehind) {
@@ -43,12 +59,9 @@ TEST(Camera, OneBehindClipped) {
   riz::Camera cam(glm::radians(90.f));
   std::vector<glm::vec3> w{{0, -1, 2}, {0, 1, 2}};
   auto r = cam.worldToScreen(w);
-  ASSERT_EQ(r.size(), 4u);
-  for (size_t i = 0; i < 4; ++i) {
-    EXPECT_TRUE(std::isfinite(r[i].x));
-    EXPECT_TRUE(std::isfinite(r[i].y));
-  }
-  EXPECT_NEAR(std::fabs(r[0].y), 40.f, 1e-3f);
+  ASSERT_EQ(r.size(), 1u);
+  EXPECT_TRUE(finiteQuad(r[0]));
+  EXPECT_NEAR(std::fabs(r[0].startTop.y), 40.f, 1e-3f);
 }
 
 TEST(Camera, EndpointAtCamera) {
@@ -56,15 +69,14 @@ TEST(Camera, EndpointAtCamera) {
   std::vector<glm::vec3> w{{0, 0, 2}, {0, 3, 2}};
   auto r = cam.worldToScreen(w);
   for (size_t i = 0; i < r.size(); ++i) {
-    EXPECT_TRUE(std::isfinite(r[i].x));
-    EXPECT_TRUE(std::isfinite(r[i].y));
+    EXPECT_TRUE(finiteQuad(r[i])) << i;
   }
 }
 
 TEST(Camera, OddCount) {
   riz::Camera cam(glm::radians(90.f));
   std::vector<glm::vec3> w{{3, 5, 4}, {-3, 5, 4}, {1, 2, 3}};
-  EXPECT_EQ(cam.worldToScreen(w).size(), 4u);
+  EXPECT_EQ(cam.worldToScreen(w).size(), 1u);
 }
 
 namespace {
@@ -93,11 +105,11 @@ TEST(Camera, OutParamMatchesReturn) {
           cam.setAngle(a);
           cam.setPosition(p);
           auto ret = cam.worldToScreen(walls);
-          std::vector<glm::vec2> out;
+          std::vector<riz::WallQuad> out;
           cam.worldToScreen(walls, out);
           ASSERT_EQ(ret.size(), out.size());
           for (size_t i = 0; i < ret.size(); ++i) {
-            EXPECT_TRUE(ret[i] == out[i]) << i;
+            EXPECT_TRUE(sameQuad(ret[i], out[i])) << i;
           }
         }
       }
@@ -108,11 +120,11 @@ TEST(Camera, OutParamMatchesReturn) {
 TEST(Camera, OutParamReusesCapacity) {
   riz::Camera cam(glm::radians(90.f));
   const auto walls = sampleWalls();
-  std::vector<glm::vec2> out;
+  std::vector<riz::WallQuad> out;
   cam.worldToScreen(walls, out);
   ASSERT_GT(out.size(), 0u);
   const size_t cap = out.capacity();
-  const glm::vec2* addr = &out[0];
+  const riz::WallQuad* addr = &out[0];
   cam.worldToScreen(walls, out);
   EXPECT_EQ(out.capacity(), cap);
   EXPECT_EQ(&out[0], addr);
@@ -121,8 +133,8 @@ TEST(Camera, OutParamReusesCapacity) {
 TEST(Camera, OutParamClearsStale) {
   riz::Camera cam(glm::radians(90.f));
   std::vector<glm::vec3> walls{{3, 5, 4}, {-3, 5, 4}};
-  std::vector<glm::vec2> out;
-  out.resize(10, glm::vec2{9.f, 9.f});
+  std::vector<riz::WallQuad> out;
+  out.resize(10, riz::WallQuad{{9, 9}, {9, 9}, {9, 9}, {9, 9}});
   cam.worldToScreen(walls, out);
   EXPECT_EQ(out.size(), cam.worldToScreen(walls).size());
 }
@@ -148,8 +160,8 @@ TEST(Camera, BasisMatchesAngle) {
     const glm::vec2 pb = pos + 6.f * f + 1.f * r;
     std::vector<glm::vec3> w{{pa.x, pa.y, 1.f}, {pb.x, pb.y, 1.f}};
     auto out = cam.worldToScreen(w);
-    ASSERT_EQ(out.size(), 4u) << a;
-    EXPECT_GT(out[0].x, 0.f) << a;
+    ASSERT_EQ(out.size(), 1u) << a;
+    EXPECT_GT(out[0].startTop.x, 0.f) << a;
   }
   riz::Camera cam0(glm::radians(90.f));
   EXPECT_FLOAT_EQ(cam0.forward().x, 0.f);
@@ -166,4 +178,27 @@ TEST(Camera, GettersReflectSetters) {
   cam.setAngle(0.7f);
   EXPECT_EQ(cam.getPosition(), glm::vec2(1.5f, -2.f));
   EXPECT_EQ(cam.getAngle(), 0.7f);
+}
+
+TEST(Camera, QuadCornersFollowWallOrder) {
+  riz::Camera cam(glm::radians(90.f));
+  cam.setPosition({0.f, 0.f});
+  cam.setAngle(0.f);
+  std::vector<glm::vec3> w{{2, 4, 2}, {-1, 2, 3}};
+  auto r = cam.worldToScreen(w);
+  ASSERT_EQ(r.size(), 1u);
+  EXPECT_NEAR(r[0].startTop.x, 0.5f, kEps);
+  EXPECT_NEAR(r[0].startTop.y, 0.5f, kEps);
+  EXPECT_NEAR(r[0].endTop.x, -0.5f, kEps);
+  EXPECT_NEAR(r[0].endTop.y, 1.5f, kEps);
+  EXPECT_EQ(r[0].startBottom, glm::vec2(r[0].startTop.x, -r[0].startTop.y));
+  EXPECT_EQ(r[0].endBottom, glm::vec2(r[0].endTop.x, -r[0].endTop.y));
+
+  std::vector<glm::vec3> swapped{{-1, 2, 3}, {2, 4, 2}};
+  auto s = cam.worldToScreen(swapped);
+  ASSERT_EQ(s.size(), 1u);
+  EXPECT_EQ(s[0].startTop, r[0].endTop);
+  EXPECT_EQ(s[0].startBottom, r[0].endBottom);
+  EXPECT_EQ(s[0].endTop, r[0].startTop);
+  EXPECT_EQ(s[0].endBottom, r[0].startBottom);
 }

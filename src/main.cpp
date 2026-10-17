@@ -13,6 +13,7 @@
 #include "engine/input.hpp"
 #include "engine/platform.hpp"
 #include "engine/render.hpp"
+#include "engine/wallQuad.hpp"
 
 namespace {
   constexpr float kFovDegrees = 30.f;
@@ -56,7 +57,7 @@ int main(int argc, char* argv[]) {
       glm::vec3 {-3, 5, 4}
     };
     riz::Camera cam(glm::radians(kFovDegrees));
-    std::vector<glm::vec2> vertices;
+    std::vector<riz::WallQuad> quads;
 
     std::size_t frame = 0;
 
@@ -70,12 +71,12 @@ int main(int argc, char* argv[]) {
       cam.setPosition(cam.getPosition() + step);
       cam.setAngle(cam.getAngle() + input.mouseDelta().x * kMouseSensitivity);
 
-      cam.worldToScreen(walls, vertices);
+      cam.worldToScreen(walls, quads);
 
       window.pollEvents();
       if (input.wasPressed(riz::Key::Escape)) window.requestClose();
 
-      render.draw(vertices);
+      render.draw(quads);
       window.swapBuffers();
       ++frame;
     }

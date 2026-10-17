@@ -36,7 +36,7 @@ namespace riz {
     glClear(GL_COLOR_BUFFER_BIT);
   }
 
-  void Renderer::draw(const std::vector<glm::vec2>& quadVertices) {
-    batch->draw(quadVertices);
+  void Renderer::draw(const std::vector<WallQuad>& quads) {
+    batch->draw(quads);
   }
 }

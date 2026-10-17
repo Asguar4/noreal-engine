@@ -7,9 +7,12 @@
 
 #include <glm/vec2.hpp>
 
+#include "./wallQuad.hpp"
+
 namespace riz {
   inline constexpr std::size_t kMaxBatchVertices = 40000;
-  inline constexpr std::size_t kMaxBatchElements = kMaxBatchVertices / 4 * 6;
+  inline constexpr std::size_t kMaxBatchQuads = kMaxBatchVertices / 4;
+  inline constexpr std::size_t kMaxBatchElements = kMaxBatchQuads * 6;
   static_assert(kMaxBatchVertices % 4 == 0, "batch holds whole quads");
 
   void loadGlFunctions();
@@ -27,7 +30,7 @@ namespace riz {
     Renderer& operator=(Renderer&&) = delete;
 
     void begin();
-    void draw(const std::vector<glm::vec2>& quadVertices);
+    void draw(const std::vector<WallQuad>& quads);
 
   private:
     std::unique_ptr<RenderBatch> batch;

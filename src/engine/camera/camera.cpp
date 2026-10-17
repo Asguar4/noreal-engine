@@ -22,16 +22,16 @@ namespace riz {
   Camera::Camera(float initFov) :
     pos(glm::vec2 {0, 0}), angle(0), fov(initFov) {}
 
-  std::vector<glm::vec2> Camera::worldToScreen(const std::vector<glm::vec3>& walls) const {
-    std::vector<glm::vec2> r;
+  std::vector<WallQuad> Camera::worldToScreen(const std::vector<glm::vec3>& walls) const {
+    std::vector<WallQuad> r;
     worldToScreen(walls, r);
     return r;
   }
 
-  void Camera::worldToScreen(const std::vector<glm::vec3>& walls, std::vector<glm::vec2>& vresult) const {
+  void Camera::worldToScreen(const std::vector<glm::vec3>& walls, std::vector<WallQuad>& vresult) const {
     vresult.clear();
     const std::size_t pairs = walls.size() / 2;
-    vresult.reserve(pairs * 4);
+    vresult.reserve(pairs);
 
     const glm::vec2 f = forward();
     const glm::vec2 r = right();
@@ -59,12 +59,11 @@ namespace riz {
                        b.height + (a.height - b.height) * t };
       }
 
-      for (const CamPoint& pt : { a, b }) {
-        const float x = pt.lateral / (pt.depth * tanHalf);
-        const float y = pt.height / pt.depth;
-        vresult.emplace_back(x, y);
-        vresult.emplace_back(x, -y);
-      }
+      const float startX = a.lateral / (a.depth * tanHalf);
+      const float startY = a.height / a.depth;
+      const float endX = b.lateral / (b.depth * tanHalf);
+      const float endY = b.height / b.depth;
+      vresult.push_back(WallQuad { { startX, startY }, { startX, -startY }, { endX, endY }, { endX, -endY } });
     }
   }
 
