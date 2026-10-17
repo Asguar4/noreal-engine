@@ -53,6 +53,15 @@ target_include_directories(riz_engine PUBLIC src)
 target_link_libraries(riz_engine PUBLIC riz_glew riz_glfw riz_glm OpenGL::GL)
 target_compile_options(riz_engine PRIVATE /W4 /permissive-)
 
+add_library(riz_bsp STATIC
+  src/containers/bsp/geometry.cpp
+  src/containers/bsp/build.cpp
+  src/containers/bsp/query.cpp
+  src/containers/bsp/invariants.cpp)
+target_include_directories(riz_bsp PUBLIC src)
+target_link_libraries(riz_bsp PUBLIC riz_glm)
+target_compile_options(riz_bsp PRIVATE /W4 /permissive-)
+
 add_executable(game src/main.cpp)
 set_target_properties(game PROPERTIES
   OUTPUT_NAME game

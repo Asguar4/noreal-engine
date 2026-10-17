@@ -22,6 +22,10 @@ target_link_libraries(riz_gl_tests PRIVATE riz_engine GTest::gtest_main)
 target_compile_definitions(riz_gl_tests PRIVATE RIZ_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 gtest_discover_tests(riz_gl_tests WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" DISCOVERY_MODE PRE_TEST PROPERTIES LABELS gl)
 
+add_executable(riz_bsp_tests bsp_geometry_test.cpp bsp_build_test.cpp bsp_query_test.cpp)
+target_link_libraries(riz_bsp_tests PRIVATE riz_bsp GTest::gtest_main)
+gtest_discover_tests(riz_bsp_tests WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" DISCOVERY_MODE PRE_TEST)
+
 add_test(NAME game_smoke
          COMMAND $<TARGET_FILE:game> --smoke-frames 120
          WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
