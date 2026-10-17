@@ -16,6 +16,7 @@ namespace riz {
     bool resizable = false;
     bool visible = true;
     bool captureCursor = true;
+    bool requestVsync = false;
   };
 
   class Window {

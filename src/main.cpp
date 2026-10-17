@@ -13,6 +13,7 @@
 #include "engine/camera.hpp"
 #include "engine/input.hpp"
 #include "engine/loop.hpp"
+#include "engine/movement.hpp"
 #include "engine/platform.hpp"
 #include "engine/render.hpp"
 #include "engine/wallQuad.hpp"
@@ -43,6 +44,7 @@ namespace {
 int main(int argc, char* argv[]) {
   std::size_t smokeFrames = 0;
   riz::WindowConfig config;
+  config.requestVsync = true;
   if (argc >= 2 && std::string(argv[1]) == "--smoke-frames") {
     if (argc < 3 || !parseSmokeFrames(argv[2], smokeFrames)) {
       std::cerr << "usage: game [--smoke-frames N]" << std::endl;
@@ -50,6 +52,7 @@ int main(int argc, char* argv[]) {
     }
     config.visible = false;
     config.captureCursor = false;
+    config.requestVsync = false;
   }
 
   try {
@@ -89,7 +92,7 @@ int main(int argc, char* argv[]) {
         float mf = (in.isDown(riz::Key::W) ? 1.f : 0.f) - (in.isDown(riz::Key::S) ? 1.f : 0.f);
         float mr = (in.isDown(riz::Key::D) ? 1.f : 0.f) - (in.isDown(riz::Key::A) ? 1.f : 0.f);
 
-        const glm::vec2 move = (mf * sim.forward() + mr * sim.right()) * (kMoveSpeed * kStepSeconds);
+        const glm::vec2 move = riz::moveDirection(mf, mr, sim.forward(), sim.right()) * (kMoveSpeed * kStepSeconds);
         sim.setPosition(sim.getPosition() + move);
         sim.setAngle(sim.getAngle() + in.mouseDelta().x * kMouseSensitivity);
       }

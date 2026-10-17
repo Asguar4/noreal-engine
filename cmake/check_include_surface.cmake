@@ -33,7 +33,7 @@ foreach(_h IN LISTS _internal)
   endif()
 endforeach()
 
-set(_enginePublic camera.hpp topDownCamera.hpp input.hpp loop.hpp io.hpp platform.hpp render.hpp wallQuad.hpp)
+set(_enginePublic camera.hpp topDownCamera.hpp input.hpp loop.hpp movement.hpp io.hpp platform.hpp render.hpp wallQuad.hpp)
 
 function(_check_target target dirs)
   foreach(_dir IN LISTS dirs)

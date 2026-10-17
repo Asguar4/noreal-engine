@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#include <chrono>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -90,6 +91,36 @@ TEST(GLWindow, WithRenderer) {
       win.swapBuffers();
     }
     EXPECT_EQ(glGetError(), static_cast<GLenum>(GL_NO_ERROR));
+  } catch (const std::runtime_error& e) {
+    GTEST_SKIP() << e.what();
+  }
+}
+
+TEST(WindowConfig, DefaultsAndAggregateInit) {
+  const riz::WindowConfig c;
+  EXPECT_EQ(c.width, 800);
+  EXPECT_EQ(c.height, 600);
+  EXPECT_EQ(c.title, "OpenGL");
+  EXPECT_FALSE(c.resizable);
+  EXPECT_TRUE(c.visible);
+  EXPECT_TRUE(c.captureCursor);
+  EXPECT_FALSE(c.requestVsync);
+  EXPECT_FALSE((riz::WindowConfig{64, 64, "t", false, false, false}).requestVsync);
+}
+
+TEST(GLWindow, VsyncRequestHiddenSwaps) {
+  try {
+    const auto start = std::chrono::steady_clock::now();
+    auto cfg = hiddenConfig();
+    cfg.requestVsync = true;
+    riz::Window win(cfg);
+    for (int i = 0; i < 3; ++i) {
+      win.pollEvents();
+      win.swapBuffers();
+    }
+    EXPECT_FALSE(win.shouldClose());
+    const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+    EXPECT_LT(elapsed.count(), 5.0);
   } catch (const std::runtime_error& e) {
     GTEST_SKIP() << e.what();
   }

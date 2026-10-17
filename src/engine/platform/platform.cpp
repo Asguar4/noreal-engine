@@ -76,6 +76,9 @@ namespace riz {
     }
 
     glfwMakeContextCurrent(handle);
+    if (config.requestVsync) {
+      glfwSwapInterval(1);
+    }
     glfwSetWindowUserPointer(handle, this);
     glfwSetKeyCallback(handle, onKeyCb);
     glfwSetCursorPosCallback(handle, onCursorCb);
