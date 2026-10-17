@@ -45,6 +45,8 @@ set_target_properties(riz_glfw PROPERTIES
 add_library(riz_engine STATIC
   src/engine/io/io.cpp
   src/engine/entity/entity.cpp
+  src/engine/input/input.cpp
+  src/engine/platform/platform.cpp
   src/engine/render/render.cpp
   src/engine/render/iRender.cpp)
 target_include_directories(riz_engine PUBLIC src)

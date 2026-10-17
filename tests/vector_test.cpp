@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "containers/array.hpp"
+#include "containers/vector.hpp"
 
 using riz::Vector;
 

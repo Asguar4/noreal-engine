@@ -1,17 +1,18 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
 
-#include "../../containers/array.hpp"
-
-#define MAX_BATCH_VERTICES 40000
-#define MAX_BATCH_ELEMENTS 60000
+#include "../../containers/vector.hpp"
 
 namespace riz {
+  inline constexpr std::size_t kMaxBatchVertices = 40000;                        // 10000 quads
+  inline constexpr std::size_t kMaxBatchElements = kMaxBatchVertices / 4 * 6;   // 60000
+  static_assert(kMaxBatchVertices % 4 == 0, "batch holds whole quads");
+
   class RenderLine {
     GLuint vao = 0;
     GLuint vbo = 0;

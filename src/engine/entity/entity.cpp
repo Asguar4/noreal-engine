@@ -4,7 +4,7 @@
 #include <glm/vec3.hpp>
 
 #include "../entity.hpp"
-#include "../../containers/array.hpp"
+#include "../../containers/vector.hpp"
 
 namespace {
   constexpr float kNearPlane = 0.05f;
@@ -17,23 +17,18 @@ namespace {
 }
 
 namespace riz {
-/*
-  Body::Body(float initSpeed, float initSens) :
-    pos(glm::vec2 {0, 0}), angle(0), speed(initSpeed), sens(initSens) {}
 
-  const glm::vec2& Body::getPosition() const {
-    return pos;
-  }
-
-  float glm::vec2 Body::getAngle() {
-    return angle;
-  }
-*/
   Camera::Camera(float initFov) :
     pos(glm::vec2 {0, 0}), angle(0), fov(initFov) {}
 
   Vector<glm::vec2> Camera::worldToScreen(const Vector<glm::vec3>& walls) const {
-    Vector<glm::vec2> vresult;
+    Vector<glm::vec2> r;
+    worldToScreen(walls, r);
+    return r;
+  }
+
+  void Camera::worldToScreen(const Vector<glm::vec3>& walls, Vector<glm::vec2>& vresult) const {
+    vresult.resize(0);
     const std::size_t pairs = walls.size() / 2;
     vresult.reserve(pairs * 4);
 
@@ -72,8 +67,6 @@ namespace riz {
         vresult[vresult.size() - 1] = glm::vec2{x, -y};
       }
     }
-
-    return vresult;
   }
 
   void Camera::setPosition(glm::vec2 position) {

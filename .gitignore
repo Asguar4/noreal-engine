@@ -5,3 +5,6 @@ lib/
 build/
 .claude/
 .workflow
+
+/CMakeFiles/
+build-*/

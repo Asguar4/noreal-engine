@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "containers/array.hpp"
+#include "containers/vector.hpp"
 
 TEST(Smoke, VectorStartsEmpty) {
   riz::Vector<int> v;

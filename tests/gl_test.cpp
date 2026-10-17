@@ -9,11 +9,8 @@
 #include <string>
 #include <type_traits>
 
+#include "engine/platform.hpp"
 #include "engine/render.hpp"
-
-// Input callbacks are defined by the application (main.cpp); stubs for tests.
-void keyCallback(GLFWwindow*, int, int, int, int) {}
-void mouseCallback(GLFWwindow*, double, double) {}
 
 using riz::RenderBatch;
 using riz::RenderLine;
@@ -130,7 +127,7 @@ TEST_F(GL, DrawVariousCounts) {
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
   b.draw(verts(4));
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
-  b.draw(verts(MAX_BATCH_VERTICES + 4));
+  b.draw(verts(riz::kMaxBatchVertices + 4));
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
 }
 
@@ -194,12 +191,14 @@ TEST_F(GL, RenderLineLifecycle) {
 TEST(GLRenderer, ConstructTwiceAndFrame) {
   for (int i = 0; i < 2; ++i) {
     try {
-      Renderer r(kVert, kFrag);
+      riz::Window win(riz::WindowConfig{64, 64, "t", false, false, false});
+      Renderer r(win.framebufferSize(), kVert, kFrag);
       EXPECT_EQ(glGetError(), GL_NO_ERROR);
       r.begin();
       riz::Vector<glm::vec2> v{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
-      r.update(v);
-      r.end();
+      win.pollEvents();
+      r.draw(v);
+      win.swapBuffers();
       EXPECT_EQ(glGetError(), GL_NO_ERROR);
     } catch (const std::runtime_error& e) {
       GTEST_SKIP() << e.what();
@@ -208,7 +207,14 @@ TEST(GLRenderer, ConstructTwiceAndFrame) {
 }
 
 TEST(GLRenderer, MissingShaderThrowsAndGlfwUsable) {
-  EXPECT_THROW(Renderer("no/such.vert", "no/such.frag"), std::runtime_error);
+  {
+    try {
+      riz::Window win(riz::WindowConfig{64, 64, "t", false, false, false});
+      EXPECT_THROW(Renderer(win.framebufferSize(), "no/such.vert", "no/such.frag"), std::runtime_error);
+    } catch (const std::runtime_error& e) {
+      GTEST_SKIP() << e.what();
+    }
+  }
   GLFWwindow* w = makeWindow();
   ASSERT_NE(w, nullptr);
   glfwDestroyWindow(w);

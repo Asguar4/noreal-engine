@@ -6,11 +6,10 @@
 #include <vector>
 
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
 
 #include "./iRender.hpp"
-#include "../../containers/array.hpp"
+#include "../../containers/vector.hpp"
 #include "../io.hpp"
 
 namespace {
@@ -201,14 +200,14 @@ namespace riz {
   }
 
   void RenderBatch::batchCreate() {
-    std::vector<GLuint> indices(MAX_BATCH_ELEMENTS);
-    for (GLuint i = 0, offset = 0; i + 6 <= MAX_BATCH_ELEMENTS; i += 6, offset += 4) {
-      indices[i + 0] = offset + 0;
-      indices[i + 1] = offset + 1;
-      indices[i + 2] = offset + 3;
-      indices[i + 3] = offset + 0;
-      indices[i + 4] = offset + 3;
-      indices[i + 5] = offset + 2;
+    std::vector<GLuint> indices(kMaxBatchElements);
+    for (std::size_t i = 0, offset = 0; i + 6 <= kMaxBatchElements; i += 6, offset += 4) {
+      indices[i + 0] = static_cast<GLuint>(offset + 0);
+      indices[i + 1] = static_cast<GLuint>(offset + 1);
+      indices[i + 2] = static_cast<GLuint>(offset + 3);
+      indices[i + 3] = static_cast<GLuint>(offset + 0);
+      indices[i + 4] = static_cast<GLuint>(offset + 3);
+      indices[i + 5] = static_cast<GLuint>(offset + 2);
     }
 
     glGenVertexArrays(1, &vao);
@@ -216,14 +215,14 @@ namespace riz {
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, MAX_BATCH_VERTICES * sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(kMaxBatchVertices * sizeof(glm::vec2)), nullptr, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), nullptr);
 
     glGenBuffers(1, &ebo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_BATCH_ELEMENTS * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, static_cast<GLsizeiptr>(kMaxBatchElements * sizeof(GLuint)), indices.data(), GL_STATIC_DRAW);
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -242,7 +241,7 @@ namespace riz {
   }
 
   void RenderBatch::draw(const Vector<glm::vec2>& vertices) {
-    const std::size_t maxVerts = (MAX_BATCH_VERTICES / 4) * 4;
+    const std::size_t maxVerts = (kMaxBatchVertices / 4) * 4;
     const std::size_t count = std::min(vertices.size(), maxVerts) / 4 * 4;
     if (count == 0) return;
 

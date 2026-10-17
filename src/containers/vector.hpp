@@ -1,5 +1,10 @@
 #pragma once
 
+// riz::Vector: dynamic array. size() = element count, capacity() = allocated slots.
+// Elem must be default-constructible and copy/move-assignable (storage is new Elem[]).
+// operator[] asserts the index in Debug builds.
+// Kept instead of std::vector by user decision (design ADR-1 / ADR-R6).
+
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
@@ -10,7 +15,6 @@
 #include <utility>
 
 namespace riz {
-  // Elem must be default-constructible and copy/move-assignable (storage is new Elem[cap]).
   template< class Elem >
   class Vector {
   public:

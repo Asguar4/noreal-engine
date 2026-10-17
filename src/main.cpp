@@ -1,96 +1,78 @@
-#include <iostream>
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <exception>
+#include <iostream>
+#include <string>
 
-#include <GL/glew.h>
-#include <GLFW/glfw3.h>
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/trigonometric.hpp>
 
-#include "engine/render.hpp"
+#include "containers/vector.hpp"
 #include "engine/entity.hpp"
+#include "engine/input.hpp"
+#include "engine/platform.hpp"
+#include "engine/render.hpp"
 
-static bool w = false;
-static bool a = false;
-static bool s = false;
-static bool d = false;
-static bool o = false;
-static bool p = false;
+namespace {
+  // Application-level player state (the engine has no entity type yet).
+  struct Player {
+    glm::vec2 pos;   // world units
+    float angle;     // radians, heading = (sin a, cos a)
+    float fov;       // DEGREES; converted with glm::radians for riz::Camera
+  };
 
-static double lastX = 0.0;
-static double lastY = 0.0;
-static float mousedx = 0.f;
-static float mousedy = 0.f;
-static bool firstMouse = true;
+  constexpr long kMaxSmokeFrames = 100000;
 
-void keyCallback(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mode*/) {
-  if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-    glfwSetWindowShouldClose(window, GL_TRUE);
-  }
-  switch (key) {
-    case GLFW_KEY_W:
-      w = action != GLFW_RELEASE;
-      break;
-    case GLFW_KEY_A:
-      a = action != GLFW_RELEASE;
-      break;
-    case GLFW_KEY_S:
-      s = action != GLFW_RELEASE;
-      break;
-    case GLFW_KEY_D:
-      d = action != GLFW_RELEASE;
-      break;
-    case GLFW_KEY_O:
-      o = action != GLFW_RELEASE;
-      break;
-    case GLFW_KEY_P:
-      p = action != GLFW_RELEASE;
-      break;
-    default:
-      break;
+  // Parses the whole string as an integer in [1, kMaxSmokeFrames].
+  bool parseSmokeFrames(const char* text, std::size_t& out) {
+    if (!text || !*text) return false;
+    for (const char* c = text; *c; ++c) {
+      if (*c < '0' || *c > '9') return false;
+    }
+    if (std::string(text).size() > 6) return false;
+    const long value = std::strtol(text, nullptr, 10);
+    if (value < 1 || value > kMaxSmokeFrames) return false;
+    out = static_cast<std::size_t>(value);
+    return true;
   }
 }
 
-void mouseCallback(GLFWwindow* /*window*/, double xpos, double ypos) {
-  if (firstMouse) {
-    lastX = xpos;
-    lastY = ypos;
-    firstMouse = false;
+int main(int argc, char* argv[]) {
+  // Hidden automated mode: game --smoke-frames N runs N frames in a hidden window, then exits with 0.
+  std::size_t smokeFrames = 0;
+  riz::WindowConfig config;
+  if (argc >= 2 && std::string(argv[1]) == "--smoke-frames") {
+    if (argc < 3 || !parseSmokeFrames(argv[2], smokeFrames)) {
+      std::cerr << "usage: game [--smoke-frames N]" << std::endl;
+      return EXIT_FAILURE;
+    }
+    config.visible = false;
+    config.captureCursor = false;
   }
 
-  mousedx += static_cast<float>(xpos - lastX);
-  mousedy += static_cast<float>(lastY - ypos);
-
-  lastX = xpos;
-  lastY = ypos;
-}
-
-struct Entity {
-  glm::vec2 pos;
-  float angle;
-  float fov;
-};
-
-int main() {
   try {
-    riz::Renderer render("./shaders/default.vert", "./shaders/default.frag");
+    riz::Window window(config);
+    riz::Renderer render(window.framebufferSize(), "./shaders/default.vert", "./shaders/default.frag");
+    const riz::Input& input = window.input();
 
-    Entity player = { {0, 0}, 0, 30 };
+    Player player = { {0, 0}, 0, 30 };
     riz::Vector<glm::vec3> walls {
       glm::vec3 { 3, 5, 4},
       glm::vec3 {-3, 5, 4}
     };
     riz::Camera cam(glm::radians(player.fov));
+    riz::Vector<glm::vec2> vertices;
 
     const float move = 0.005f;
+    std::size_t frame = 0;
 
-    while (!render.windowClose()) {
+    while (!window.shouldClose() && (smokeFrames == 0 || frame < smokeFrames)) {
       render.begin();
 
-      float mf = (w ? 1.f : 0.f) - (s ? 1.f : 0.f);
-      float mr = (d ? 1.f : 0.f) - (a ? 1.f : 0.f);
+      float mf = (input.isDown(riz::Key::W) ? 1.f : 0.f) - (input.isDown(riz::Key::S) ? 1.f : 0.f);
+      float mr = (input.isDown(riz::Key::D) ? 1.f : 0.f) - (input.isDown(riz::Key::A) ? 1.f : 0.f);
 
       float dx = mf * std::sin(player.angle) + mr * std::cos(player.angle);
       float dy = mf * std::cos(player.angle) - mr * std::sin(player.angle);
@@ -98,17 +80,19 @@ int main() {
       player.pos[0] += dx * move;
       player.pos[1] += dy * move;
 
-      player.angle += mousedx * 0.002f;
-      mousedx = 0.f;
+      player.angle += input.mouseDelta().x * 0.002f;
 
       cam.setPosition(player.pos);
       cam.setAngle(player.angle);
 
-      riz::Vector<glm::vec2> vertices = cam.worldToScreen(walls);
+      cam.worldToScreen(walls, vertices);
 
-      render.update(vertices);
+      window.pollEvents();
+      if (input.wasPressed(riz::Key::Escape)) window.requestClose();
 
-      render.end();
+      render.draw(vertices);
+      window.swapBuffers();
+      ++frame;
     }
   } catch (const std::exception& e) {
     std::cerr << e.what() << std::endl;
