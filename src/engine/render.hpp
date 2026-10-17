@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <vector>
 
-#include <GL/glew.h>
 #include <glm/vec2.hpp>
 
 namespace riz {
@@ -14,31 +14,12 @@ namespace riz {
 
   void loadGlFunctions();
 
-  class RenderBatch {
-    GLuint vao = 0;
-    GLuint vbo = 0;
-    GLuint ebo = 0;
-    GLuint shader = 0;
-
-    void batchCreate();
-  public:
-    RenderBatch() = default;
-    ~RenderBatch();
-
-    RenderBatch(const RenderBatch&) = delete;
-    RenderBatch& operator=(const RenderBatch&) = delete;
-    RenderBatch(RenderBatch&& other) noexcept;
-    RenderBatch& operator=(RenderBatch&& other) noexcept;
-
-    void init(const std::string& pathVert, const std::string& pathFrag);
-    void draw(const std::vector<glm::vec2>& vertices);
-    void release() noexcept;
-  };
+  class RenderBatch;
 
   class Renderer {
   public:
     Renderer(glm::ivec2 framebufferSize, const std::string& pathVert, const std::string& pathFrag);
-    ~Renderer() = default;
+    ~Renderer();
 
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
@@ -49,6 +30,6 @@ namespace riz {
     void draw(const std::vector<glm::vec2>& quadVertices);
 
   private:
-    RenderBatch batch;
+    std::unique_ptr<RenderBatch> batch;
   };
 }

@@ -26,6 +26,8 @@ endforeach()
 
 find_package(OpenGL REQUIRED)
 
+include(cmake/riz_headers.cmake)
+
 add_library(riz_glm INTERFACE)
 target_include_directories(riz_glm INTERFACE "${RIZ_DEPS_DIR}/include")
 
@@ -50,8 +52,11 @@ add_library(riz_engine STATIC
   src/engine/platform/platform.cpp
   src/engine/render/render.cpp
   src/engine/render/renderBatch.cpp)
-target_include_directories(riz_engine PUBLIC src)
-target_link_libraries(riz_engine PUBLIC riz_glew riz_glfw riz_glm OpenGL::GL)
+riz_stage_headers(RIZ_ENGINE_PUBLIC_DIR riz_engine_public
+  engine/camera.hpp engine/topDownCamera.hpp engine/input.hpp
+  engine/io.hpp engine/platform.hpp engine/render.hpp)
+target_include_directories(riz_engine PUBLIC "${RIZ_ENGINE_PUBLIC_DIR}")
+target_link_libraries(riz_engine PUBLIC riz_glm PRIVATE riz_glew riz_glfw OpenGL::GL)
 target_compile_options(riz_engine PRIVATE /W4 /permissive-)
 
 add_library(riz_bsp STATIC
@@ -59,9 +64,15 @@ add_library(riz_bsp STATIC
   src/containers/bsp/build.cpp
   src/containers/bsp/query.cpp
   src/containers/bsp/invariants.cpp)
-target_include_directories(riz_bsp PUBLIC src)
+riz_stage_headers(RIZ_BSP_PUBLIC_DIR riz_bsp_public containers/bsp.hpp)
+target_include_directories(riz_bsp PUBLIC "${RIZ_BSP_PUBLIC_DIR}")
 target_link_libraries(riz_bsp PUBLIC riz_glm)
 target_compile_options(riz_bsp PRIVATE /W4 /permissive-)
+
+file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/riz_include_surface.cmake" CONTENT
+"set(RIZ_ENGINE_DIRS \"$<TARGET_PROPERTY:riz_engine,INTERFACE_INCLUDE_DIRECTORIES>\")
+set(RIZ_BSP_DIRS \"$<TARGET_PROPERTY:riz_bsp,INTERFACE_INCLUDE_DIRECTORIES>\")
+")
 
 add_executable(game src/main.cpp)
 set_target_properties(game PROPERTIES

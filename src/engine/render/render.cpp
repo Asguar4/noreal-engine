@@ -1,3 +1,4 @@
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -5,6 +6,7 @@
 #include <glm/vec2.hpp>
 
 #include "../render.hpp"
+#include "./iRender.hpp"
 
 namespace riz {
   void loadGlFunctions() {
@@ -23,8 +25,11 @@ namespace riz {
 
     glViewport(0, 0, framebufferSize.x, framebufferSize.y);
 
-    batch.init(pathVert, pathFrag);
+    batch = std::make_unique<RenderBatch>();
+    batch->init(pathVert, pathFrag);
   }
+
+  Renderer::~Renderer() = default;
 
   void Renderer::begin() {
     glClearColor(0.08f, 0.1f, 0.1f, 1.f);
@@ -32,6 +37,6 @@ namespace riz {
   }
 
   void Renderer::draw(const std::vector<glm::vec2>& quadVertices) {
-    batch.draw(quadVertices);
+    batch->draw(quadVertices);
   }
 }

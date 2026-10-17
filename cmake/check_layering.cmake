@@ -3,7 +3,7 @@
 #
 # Rules (paths relative to <root>):
 #   R1  GLFW include outside src/engine/platform/
-#   R2  GL include outside src/engine/render.hpp and src/engine/render/
+#   R2  GL include outside src/engine/render/
 #   R4  forbidden cross-module includes (platform.hpp from render/input/camera/io,
 #       render.hpp from platform/input/camera/io)
 #   R5  internal header i<Name>.hpp included outside src/<lib>/<name>/,
@@ -37,10 +37,10 @@ foreach(_file IN LISTS _files)
 
   set(_inPlatform FALSE)
   set(_inRender FALSE)
-  if(_rel MATCHES "^src/engine/platform[./]")
+  if(_rel MATCHES "^src/engine/platform/")
     set(_inPlatform TRUE)
   endif()
-  if(_rel MATCHES "^src/engine/render[./]")
+  if(_rel MATCHES "^src/engine/render/")
     set(_inRender TRUE)
   endif()
   # modules that must not see platform.hpp
@@ -64,7 +64,7 @@ foreach(_file IN LISTS _files)
       _violation(R1 "${_rel}" "includes ${_path} outside src/engine/platform/")
     endif()
     # R2
-    if(_inSrc AND _path MATCHES "^GL/" AND NOT _rel STREQUAL "src/engine/render.hpp" AND NOT _inRender)
+    if(_inSrc AND _path MATCHES "^GL/" AND NOT _inRender)
       _violation(R2 "${_rel}" "includes ${_path} outside the render module")
     endif()
     # R4

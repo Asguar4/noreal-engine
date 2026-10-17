@@ -12,6 +12,7 @@
 
 #include "engine/platform.hpp"
 #include "engine/render.hpp"
+#include "engine/render/iRender.hpp"
 
 using riz::RenderBatch;
 using riz::Renderer;

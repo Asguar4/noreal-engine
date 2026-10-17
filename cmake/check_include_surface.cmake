@@ -1,0 +1,112 @@
+# Include-surface check for the public include directories of riz_engine and riz_bsp.
+# Usage: cmake -DRIZ_SOURCE_DIR=<root> -DRIZ_SURFACE_FILE=<file> -P cmake/check_include_surface.cmake
+#    or: cmake -DRIZ_SOURCE_DIR=<root> -DRIZ_ENGINE_DIRS=<dirs> -DRIZ_BSP_DIRS=<dirs> -P cmake/check_include_surface.cmake
+#
+# Checks:
+#   S1  an include dir is <root>/src or lies inside it
+#   S2  an internal header i<Name>.hpp is reachable through an include dir
+#   S3  the public headers provided do not match the expected set
+
+if(NOT RIZ_SOURCE_DIR)
+  message(FATAL_ERROR "riz_include_surface: pass -DRIZ_SOURCE_DIR=<root>")
+endif()
+if(RIZ_SURFACE_FILE)
+  include("${RIZ_SURFACE_FILE}")
+endif()
+
+set(_src "${RIZ_SOURCE_DIR}/src")
+set(_count 0)
+set(_checks "")
+
+macro(_violation id target reason)
+  message("SURFACE ${id}: ${target}: ${reason}")
+  math(EXPR _count "${_count} + 1")
+  list(APPEND _checks "${id}")
+endmacro()
+
+file(GLOB_RECURSE _internal RELATIVE "${_src}" "${_src}/*.hpp")
+set(_internalHeaders "")
+foreach(_h IN LISTS _internal)
+  get_filename_component(_n "${_h}" NAME)
+  if(_n MATCHES "^i[A-Z][A-Za-z0-9_]*\.hpp$")
+    list(APPEND _internalHeaders "${_h}")
+  endif()
+endforeach()
+
+set(_enginePublic camera.hpp topDownCamera.hpp input.hpp io.hpp platform.hpp render.hpp)
+
+function(_check_target target dirs)
+  foreach(_dir IN LISTS dirs)
+    file(TO_CMAKE_PATH "${_dir}" _d)
+    if(_d STREQUAL "${_src}" OR _d MATCHES "^${_src}/")
+      _violation(S1 "${target}" "include dir ${_d} is inside src")
+    endif()
+  endforeach()
+
+  foreach(_h IN LISTS _internalHeaders)
+    set(_suffix "${_h}")
+    while(TRUE)
+      foreach(_dir IN LISTS dirs)
+        if(EXISTS "${_dir}/${_suffix}")
+          _violation(S2 "${target}" "internal header ${_h} reachable as ${_suffix} via ${_dir}")
+        endif()
+      endforeach()
+      if(NOT _suffix MATCHES "/")
+        break()
+      endif()
+      string(REGEX REPLACE "^[^/]+/" "" _suffix "${_suffix}")
+    endwhile()
+  endforeach()
+
+  set(_hasBsp FALSE)
+  set(_missingEngine "")
+  set(_hasAnyEngine FALSE)
+  foreach(_dir IN LISTS dirs)
+    if(EXISTS "${_dir}/containers/bsp.hpp")
+      set(_hasBsp TRUE)
+    endif()
+  endforeach()
+  foreach(_e IN LISTS _enginePublic)
+    set(_found FALSE)
+    foreach(_dir IN LISTS dirs)
+      if(EXISTS "${_dir}/engine/${_e}")
+        set(_found TRUE)
+        set(_hasAnyEngine TRUE)
+      endif()
+    endforeach()
+    if(NOT _found)
+      list(APPEND _missingEngine "${_e}")
+    endif()
+  endforeach()
+
+  if(target STREQUAL "riz_engine")
+    if(_missingEngine)
+      _violation(S3 "${target}" "missing public headers: ${_missingEngine}")
+    endif()
+    if(_hasBsp)
+      _violation(S3 "${target}" "provides containers/bsp.hpp")
+    endif()
+  else()
+    if(NOT _hasBsp)
+      _violation(S3 "${target}" "does not provide containers/bsp.hpp")
+    endif()
+    if(_hasAnyEngine)
+      _violation(S3 "${target}" "provides engine headers")
+    endif()
+  endif()
+
+  set(_count ${_count} PARENT_SCOPE)
+  set(_checks ${_checks} PARENT_SCOPE)
+endfunction()
+
+_check_target(riz_engine "${RIZ_ENGINE_DIRS}")
+_check_target(riz_bsp "${RIZ_BSP_DIRS}")
+
+if(_count GREATER 0)
+  list(REMOVE_DUPLICATES _checks)
+  list(SORT _checks)
+  string(REPLACE ";" "," _checksText "${_checks}")
+  message(FATAL_ERROR "riz_include_surface: ${_count} violation(s); checks violated: ${_checksText}")
+endif()
+
+message("riz_include_surface: OK")
