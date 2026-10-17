@@ -8,7 +8,7 @@
 #include <GL/glew.h>
 #include <glm/vec2.hpp>
 
-#include "./iRender.hpp"
+#include "../render.hpp"
 #include "../io.hpp"
 
 namespace {
@@ -42,9 +42,6 @@ namespace {
 
   GLuint renderShaderCreate(const std::string& pathShader, GLenum type) {
     riz::File fileShader(pathShader);
-    if (!fileShader.valid()) {
-      throw std::runtime_error("Error reading shader: " + pathShader);
-    }
 
     ShaderGuard guard { glCreateShader(type) };
     if (!guard.id) {
@@ -94,71 +91,6 @@ namespace {
 }
 
 namespace riz {
-
-  RenderLine::~RenderLine() {
-    release();
-  }
-
-  RenderLine::RenderLine(RenderLine&& other) noexcept
-    : vao(other.vao), vbo(other.vbo), shader(other.shader) {
-    other.vao = 0;
-    other.vbo = 0;
-    other.shader = 0;
-  }
-
-  RenderLine& RenderLine::operator=(RenderLine&& other) noexcept {
-    if (this != &other) {
-      release();
-      vao = other.vao;
-      vbo = other.vbo;
-      shader = other.shader;
-      other.vao = 0;
-      other.vbo = 0;
-      other.shader = 0;
-    }
-    return *this;
-  }
-
-  void RenderLine::release() noexcept {
-    if (vbo) { glDeleteBuffers(1, &vbo); vbo = 0; }
-    if (vao) { glDeleteVertexArrays(1, &vao); vao = 0; }
-    if (shader) { glDeleteProgram(shader); shader = 0; }
-  }
-
-  void RenderLine::lineCreate() {
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, 2 * sizeof(glm::vec2), nullptr, GL_DYNAMIC_DRAW);
-
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), nullptr);
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-    glBindVertexArray(0);
-  }
-
-  void RenderLine::init(const std::string& pathVert, const std::string& pathFrag) {
-    release();
-    shader = shaderProgramCreate(pathVert, pathFrag);
-    lineCreate();
-  }
-
-  void RenderLine::draw(const std::vector<glm::vec2>& vertices) {
-    if (vertices.size() < 2) return;
-
-    glUseProgram(shader);
-    glBindVertexArray(vao);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec2) * 2, vertices.data());
-    glDrawArrays(GL_LINES, 0, 2);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
-  }
 
   RenderBatch::~RenderBatch() {
     release();

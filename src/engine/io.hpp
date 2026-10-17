@@ -5,20 +5,18 @@
 
 namespace riz {
   class File {
-    char * data = nullptr;
-    std::size_t size = 0;
-    bool isValid = false;
+    std::string data;
   public:
-    File(const std::string& path);
-    File(const File& other);
-    File(File&& other) noexcept;
-    ~File();
+    explicit File(const std::string& path);
 
-    File& operator=(const File& other);
+    File(const File& other) = default;
+    File(File&& other) noexcept;
+    ~File() = default;
+
+    File& operator=(const File& other) = default;
     File& operator=(File&& other) noexcept;
-   
-    const char * getData() const;
-    std::size_t getSize() const;
-    bool valid() const;
+
+    const char * getData() const noexcept;
+    std::size_t getSize() const noexcept;
   };
 }

@@ -1,4 +1,3 @@
-#include <cmath>
 #include <cstddef>
 #include <cstdlib>
 #include <exception>
@@ -10,17 +9,15 @@
 #include <glm/vec3.hpp>
 #include <glm/trigonometric.hpp>
 
-#include "engine/entity.hpp"
+#include "engine/camera.hpp"
 #include "engine/input.hpp"
 #include "engine/platform.hpp"
 #include "engine/render.hpp"
 
 namespace {
-  struct Player {
-    glm::vec2 pos;
-    float angle;
-    float fov;
-  };
+  constexpr float kFovDegrees = 30.f;
+  constexpr float kMoveSpeed = 0.005f;
+  constexpr float kMouseSensitivity = 0.002f;
 
   constexpr long kMaxSmokeFrames = 100000;
 
@@ -54,15 +51,13 @@ int main(int argc, char* argv[]) {
     riz::Renderer render(window.framebufferSize(), "./shaders/default.vert", "./shaders/default.frag");
     const riz::Input& input = window.input();
 
-    Player player = { {0, 0}, 0, 30 };
     std::vector<glm::vec3> walls {
       glm::vec3 { 3, 5, 4},
       glm::vec3 {-3, 5, 4}
     };
-    riz::Camera cam(glm::radians(player.fov));
+    riz::Camera cam(glm::radians(kFovDegrees));
     std::vector<glm::vec2> vertices;
 
-    const float move = 0.005f;
     std::size_t frame = 0;
 
     while (!window.shouldClose() && (smokeFrames == 0 || frame < smokeFrames)) {
@@ -71,16 +66,9 @@ int main(int argc, char* argv[]) {
       float mf = (input.isDown(riz::Key::W) ? 1.f : 0.f) - (input.isDown(riz::Key::S) ? 1.f : 0.f);
       float mr = (input.isDown(riz::Key::D) ? 1.f : 0.f) - (input.isDown(riz::Key::A) ? 1.f : 0.f);
 
-      float dx = mf * std::sin(player.angle) + mr * std::cos(player.angle);
-      float dy = mf * std::cos(player.angle) - mr * std::sin(player.angle);
-
-      player.pos[0] += dx * move;
-      player.pos[1] += dy * move;
-
-      player.angle += input.mouseDelta().x * 0.002f;
-
-      cam.setPosition(player.pos);
-      cam.setAngle(player.angle);
+      const glm::vec2 step = (mf * cam.forward() + mr * cam.right()) * kMoveSpeed;
+      cam.setPosition(cam.getPosition() + step);
+      cam.setAngle(cam.getAngle() + input.mouseDelta().x * kMouseSensitivity);
 
       cam.worldToScreen(walls, vertices);
 

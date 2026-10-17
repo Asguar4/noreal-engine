@@ -1,31 +1,13 @@
 #include <gtest/gtest.h>
 
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-
 #include <cstddef>
-#include <cstdint>
-#include <cstring>
-#include <random>
-#include <set>
 #include <type_traits>
 
 #include "engine/input.hpp"
-#include "engine/platform/iPlatform.hpp"
 
 using riz::Input;
 using riz::Key;
 using riz::KeyAction;
-
-namespace {
-bool sameBits(float a, float b) {
-  std::uint32_t x = 0;
-  std::uint32_t y = 0;
-  std::memcpy(&x, &a, sizeof x);
-  std::memcpy(&y, &b, sizeof y);
-  return x == y;
-}
-}
 
 static_assert(noexcept(std::declval<const Input&>().isDown(Key::A)));
 static_assert(noexcept(std::declval<const Input&>().wasPressed(Key::A)));
@@ -131,141 +113,4 @@ TEST(Input, CursorBitExactFloatSum) {
   }
   EXPECT_TRUE(in.mouseDelta().x == ex);
   EXPECT_TRUE(in.mouseDelta().y == ey);
-}
-
-TEST(KeyMap, LettersDigitsAndSpecials) {
-  for (int i = 0; i < 26; ++i) {
-    EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_A + i), static_cast<Key>(static_cast<int>(Key::A) + i)) << i;
-  }
-  for (int i = 0; i < 10; ++i) {
-    EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_0 + i), static_cast<Key>(static_cast<int>(Key::Num0) + i)) << i;
-  }
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_W), Key::W);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_Z), Key::Z);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_SPACE), Key::Space);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_ESCAPE), Key::Escape);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_ENTER), Key::Enter);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_TAB), Key::Tab);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_BACKSPACE), Key::Backspace);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_LEFT), Key::Left);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_RIGHT), Key::Right);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_UP), Key::Up);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_DOWN), Key::Down);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_LEFT_SHIFT), Key::LeftShift);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_RIGHT_SHIFT), Key::RightShift);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_LEFT_CONTROL), Key::LeftControl);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_RIGHT_CONTROL), Key::RightControl);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_LEFT_ALT), Key::LeftAlt);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_RIGHT_ALT), Key::RightAlt);
-}
-
-TEST(KeyMap, InjectiveAndSurjective) {
-  std::set<int> seen;
-  for (int code = -10; code <= GLFW_KEY_LAST + 10; ++code) {
-    const Key k = riz::keyFromGlfw(code);
-    if (k == Key::Unknown) continue;
-    EXPECT_LT(static_cast<int>(k), static_cast<int>(Key::Count)) << code;
-    EXPECT_TRUE(seen.insert(static_cast<int>(k)).second) << "key produced twice, code " << code;
-  }
-  EXPECT_EQ(seen.size(), static_cast<std::size_t>(Key::Count) - 1);
-  for (int k = 1; k < static_cast<int>(Key::Count); ++k) {
-    EXPECT_EQ(seen.count(k), 1u) << k;
-  }
-}
-
-TEST(KeyMap, UnmappedIsUnknown) {
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_UNKNOWN), Key::Unknown);
-  EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_F1), Key::Unknown);
-  EXPECT_EQ(riz::keyFromGlfw(-5), Key::Unknown);
-  EXPECT_EQ(riz::keyFromGlfw(100000), Key::Unknown);
-}
-
-TEST(KeyMap, Actions) {
-  EXPECT_EQ(riz::keyActionFromGlfw(GLFW_PRESS), KeyAction::Press);
-  EXPECT_EQ(riz::keyActionFromGlfw(GLFW_REPEAT), KeyAction::Repeat);
-  EXPECT_EQ(riz::keyActionFromGlfw(GLFW_RELEASE), KeyAction::Release);
-  EXPECT_EQ(riz::keyActionFromGlfw(42), KeyAction::Release);
-}
-
-namespace {
-struct LegacyInput {
-  bool w = false, a = false, s = false, d = false, o = false, p = false;
-  double lastX = 0.0;
-  double lastY = 0.0;
-  float mousedx = 0.f;
-  float mousedy = 0.f;
-  bool firstMouse = true;
-  bool close = false;
-
-  void onKey(int key, int action) {
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-      close = true;
-    }
-    switch (key) {
-      case GLFW_KEY_W: w = action != GLFW_RELEASE; break;
-      case GLFW_KEY_A: a = action != GLFW_RELEASE; break;
-      case GLFW_KEY_S: s = action != GLFW_RELEASE; break;
-      case GLFW_KEY_D: d = action != GLFW_RELEASE; break;
-      case GLFW_KEY_O: o = action != GLFW_RELEASE; break;
-      case GLFW_KEY_P: p = action != GLFW_RELEASE; break;
-      default: break;
-    }
-  }
-
-  void onCursor(double xpos, double ypos) {
-    if (firstMouse) {
-      lastX = xpos;
-      lastY = ypos;
-      firstMouse = false;
-    }
-    mousedx += static_cast<float>(xpos - lastX);
-    mousedy += static_cast<float>(lastY - ypos);
-    lastX = xpos;
-    lastY = ypos;
-  }
-};
-}
-
-TEST(InputLegacy, EquivalentToOldCallbacks) {
-  const int keys[] = {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_O,
-                      GLFW_KEY_P, GLFW_KEY_ESCAPE, GLFW_KEY_F1, GLFW_KEY_UNKNOWN};
-  const int actions[] = {GLFW_PRESS, GLFW_REPEAT, GLFW_RELEASE};
-
-  std::mt19937 rng(12345u);
-  std::uniform_int_distribution<int> eventCount(0, 6);
-  std::uniform_int_distribution<int> kind(0, 1);
-  std::uniform_int_distribution<int> keyPick(0, 8);
-  std::uniform_int_distribution<int> actionPick(0, 2);
-  std::uniform_real_distribution<double> coord(-1e6, 1e6);
-
-  LegacyInput old;
-  Input in;
-
-  for (int frame = 0; frame < 2000; ++frame) {
-    old.mousedx = 0.f;
-    old.close = false;
-    in.beginFrame();
-
-    const int n = eventCount(rng);
-    for (int e = 0; e < n; ++e) {
-      if (kind(rng) == 0) {
-        const int key = keys[keyPick(rng)];
-        const int action = actions[actionPick(rng)];
-        old.onKey(key, action);
-        in.onKey(riz::keyFromGlfw(key), riz::keyActionFromGlfw(action));
-      } else {
-        const double x = coord(rng);
-        const double y = coord(rng);
-        old.onCursor(x, y);
-        in.onCursorPos(x, y);
-      }
-    }
-
-    ASSERT_EQ(in.isDown(Key::W), old.w) << frame;
-    ASSERT_EQ(in.isDown(Key::A), old.a) << frame;
-    ASSERT_EQ(in.isDown(Key::S), old.s) << frame;
-    ASSERT_EQ(in.isDown(Key::D), old.d) << frame;
-    ASSERT_TRUE(sameBits(in.mouseDelta().x, old.mousedx)) << frame;
-    ASSERT_EQ(in.wasPressed(Key::Escape), old.close) << frame;
-  }
 }

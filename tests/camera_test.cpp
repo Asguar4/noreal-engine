@@ -2,10 +2,11 @@
 
 #include <cmath>
 #include <vector>
+#include <glm/geometric.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/trigonometric.hpp>
 
-#include "engine/entity.hpp"
+#include "engine/camera.hpp"
 
 namespace {
 constexpr float kEps = 1e-5f;
@@ -124,4 +125,45 @@ TEST(Camera, OutParamClearsStale) {
   out.resize(10, glm::vec2{9.f, 9.f});
   cam.worldToScreen(walls, out);
   EXPECT_EQ(out.size(), cam.worldToScreen(walls).size());
+}
+
+TEST(Camera, BasisMatchesAngle) {
+  const float angles[] = {0.f, 0.3f, glm::half_pi<float>(), 2.5f, -1.2f};
+  for (float a : angles) {
+    riz::Camera cam(glm::radians(90.f));
+    cam.setAngle(a);
+    const glm::vec2 f = cam.forward();
+    const glm::vec2 r = cam.right();
+    EXPECT_FLOAT_EQ(f.x, std::sin(a)) << a;
+    EXPECT_FLOAT_EQ(f.y, std::cos(a)) << a;
+    EXPECT_FLOAT_EQ(r.x, std::cos(a)) << a;
+    EXPECT_FLOAT_EQ(r.y, -std::sin(a)) << a;
+    EXPECT_NEAR(glm::length(f), 1.f, 1e-6f) << a;
+    EXPECT_NEAR(glm::length(r), 1.f, 1e-6f) << a;
+    EXPECT_NEAR(glm::dot(f, r), 0.f, 1e-6f) << a;
+
+    const glm::vec2 pos(1.f, 2.f);
+    cam.setPosition(pos);
+    const glm::vec2 pa = pos + 5.f * f + 1.f * r;
+    const glm::vec2 pb = pos + 6.f * f + 1.f * r;
+    std::vector<glm::vec3> w{{pa.x, pa.y, 1.f}, {pb.x, pb.y, 1.f}};
+    auto out = cam.worldToScreen(w);
+    ASSERT_EQ(out.size(), 4u) << a;
+    EXPECT_GT(out[0].x, 0.f) << a;
+  }
+  riz::Camera cam0(glm::radians(90.f));
+  EXPECT_FLOAT_EQ(cam0.forward().x, 0.f);
+  EXPECT_FLOAT_EQ(cam0.forward().y, 1.f);
+  EXPECT_FLOAT_EQ(cam0.right().x, 1.f);
+  EXPECT_FLOAT_EQ(cam0.right().y, 0.f);
+}
+
+TEST(Camera, GettersReflectSetters) {
+  riz::Camera cam(glm::radians(90.f));
+  EXPECT_EQ(cam.getPosition(), glm::vec2(0.f, 0.f));
+  EXPECT_EQ(cam.getAngle(), 0.f);
+  cam.setPosition({1.5f, -2.f});
+  cam.setAngle(0.7f);
+  EXPECT_EQ(cam.getPosition(), glm::vec2(1.5f, -2.f));
+  EXPECT_EQ(cam.getAngle(), 0.7f);
 }

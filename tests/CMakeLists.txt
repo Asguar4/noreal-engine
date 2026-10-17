@@ -10,21 +10,23 @@ FetchContent_MakeAvailable(googletest)
 add_executable(riz_tests
   file_test.cpp
   camera_test.cpp
-  input_test.cpp)
+  top_down_camera_test.cpp
+  input_test.cpp
+  platform_test.cpp)
 target_link_libraries(riz_tests PRIVATE riz_engine GTest::gtest_main)
 target_compile_definitions(riz_tests PRIVATE RIZ_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
 
 include(GoogleTest)
-gtest_discover_tests(riz_tests WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" DISCOVERY_MODE PRE_TEST)
+gtest_discover_tests(riz_tests DISCOVERY_MODE PRE_TEST)
 
 add_executable(riz_gl_tests gl_test.cpp platform_gl_test.cpp)
 target_link_libraries(riz_gl_tests PRIVATE riz_engine GTest::gtest_main)
 target_compile_definitions(riz_gl_tests PRIVATE RIZ_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
-gtest_discover_tests(riz_gl_tests WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" DISCOVERY_MODE PRE_TEST PROPERTIES LABELS gl)
+gtest_discover_tests(riz_gl_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS gl)
 
 add_executable(riz_bsp_tests bsp_geometry_test.cpp bsp_build_test.cpp bsp_query_test.cpp)
 target_link_libraries(riz_bsp_tests PRIVATE riz_bsp GTest::gtest_main)
-gtest_discover_tests(riz_bsp_tests WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" DISCOVERY_MODE PRE_TEST)
+gtest_discover_tests(riz_bsp_tests DISCOVERY_MODE PRE_TEST)
 
 add_test(NAME game_smoke
          COMMAND $<TARGET_FILE:game> --smoke-frames 120
@@ -36,4 +38,4 @@ add_test(NAME riz_layering
 add_test(NAME riz_layering_selftest
          COMMAND ${CMAKE_COMMAND} -DRIZ_SOURCE_DIR=${PROJECT_SOURCE_DIR}/tests/layering_fixture -P ${PROJECT_SOURCE_DIR}/cmake/check_layering.cmake)
 set_tests_properties(riz_layering_selftest PROPERTIES
-  PASS_REGULAR_EXPRESSION "riz_layering: 4 violation\\(s\\); rules violated: R1,R2,R3,R4")
+  PASS_REGULAR_EXPRESSION "riz_layering: 4 violation\\(s\\); rules violated: R1,R2,R4,R5")

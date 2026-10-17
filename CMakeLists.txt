@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(noreal_engine LANGUAGES CXX)
+project(riz LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,7 +12,7 @@ if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
   message(FATAL_ERROR "The vendored GLEW/GLFW libraries in lib/ are x64 only: configure with -A x64.")
 endif()
 
-# Static CRT, like build.bat (/MT). Must be set before FetchContent so googletest matches.
+# Static CRT (/MT, /MTd) to match the vendored glfw3_mt.lib. Must be set before FetchContent so googletest matches.
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 set(RIZ_DEPS_DIR "${PROJECT_SOURCE_DIR}" CACHE PATH "Directory containing include/ and lib/ with GLEW, GLFW and GLM")
@@ -44,11 +44,12 @@ set_target_properties(riz_glfw PROPERTIES
 
 add_library(riz_engine STATIC
   src/engine/io/io.cpp
-  src/engine/entity/entity.cpp
+  src/engine/camera/camera.cpp
+  src/engine/camera/topDownCamera.cpp
   src/engine/input/input.cpp
   src/engine/platform/platform.cpp
   src/engine/render/render.cpp
-  src/engine/render/iRender.cpp)
+  src/engine/render/renderBatch.cpp)
 target_include_directories(riz_engine PUBLIC src)
 target_link_libraries(riz_engine PUBLIC riz_glew riz_glfw riz_glm OpenGL::GL)
 target_compile_options(riz_engine PRIVATE /W4 /permissive-)

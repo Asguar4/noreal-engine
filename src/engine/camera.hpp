@@ -19,5 +19,10 @@ namespace riz {
 
     void setPosition(glm::vec2 pos);
     void setAngle(float newAngle);
+
+    glm::vec2 getPosition() const;
+    float getAngle() const;
+    glm::vec2 forward() const;
+    glm::vec2 right() const;
   };
 }

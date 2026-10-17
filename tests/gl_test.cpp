@@ -1,10 +1,10 @@
 #include <gtest/gtest.h>
 
 #include <GL/glew.h>
-#include <GLFW/glfw3.h>
 
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -14,32 +14,18 @@
 #include "engine/render.hpp"
 
 using riz::RenderBatch;
-using riz::RenderLine;
 using riz::Renderer;
 
 static_assert(!std::is_copy_constructible_v<RenderBatch> && !std::is_copy_assignable_v<RenderBatch>);
 static_assert(std::is_nothrow_move_constructible_v<RenderBatch> && std::is_nothrow_move_assignable_v<RenderBatch>);
-static_assert(!std::is_copy_constructible_v<RenderLine> && !std::is_copy_assignable_v<RenderLine>);
-static_assert(std::is_nothrow_move_constructible_v<RenderLine> && std::is_nothrow_move_assignable_v<RenderLine>);
 static_assert(!std::is_copy_constructible_v<Renderer> && !std::is_move_constructible_v<Renderer>);
 
 namespace {
 const std::string kVert = std::string(RIZ_SOURCE_DIR) + "/shaders/default.vert";
 const std::string kFrag = std::string(RIZ_SOURCE_DIR) + "/shaders/default.frag";
 
-GLFWwindow* makeWindow() {
-  if (glfwInit() != GLFW_TRUE) return nullptr;
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-  GLFWwindow* w = glfwCreateWindow(64, 64, "t", nullptr, nullptr);
-  if (!w) return nullptr;
-  glfwMakeContextCurrent(w);
-  glewExperimental = GL_TRUE;
-  if (glewInit() != GLEW_OK) return nullptr;
-  while (glGetError() != GL_NO_ERROR) {}
-  return w;
+riz::WindowConfig hiddenConfig() {
+  return riz::WindowConfig{64, 64, "t", false, false, false};
 }
 
 std::vector<glm::vec2> verts(size_t n) {
@@ -67,14 +53,18 @@ GLuint currentProgram() {
 
 class GL : public ::testing::Test {
 protected:
-  GLFWwindow* win = nullptr;
+  std::unique_ptr<riz::Window> win;
   void SetUp() override {
-    win = makeWindow();
-    if (!win) GTEST_SKIP() << "no GL context available";
+    try {
+      win = std::make_unique<riz::Window>(hiddenConfig());
+      riz::loadGlFunctions();
+    } catch (const std::runtime_error& e) {
+      win.reset();
+      GTEST_SKIP() << "no GL context available: " << e.what();
+    }
   }
   void TearDown() override {
-    if (win) glfwDestroyWindow(win);
-    glfwTerminate();
+    win.reset();
   }
 };
 
@@ -179,20 +169,10 @@ TEST_F(GL, CompileErrorHasLogAndCleansUp) {
   std::filesystem::remove(p);
 }
 
-TEST_F(GL, RenderLineLifecycle) {
-  RenderLine l;
-  l.init(kVert, kFrag);
-  l.draw(std::vector<glm::vec2>{{0, 0}, {1, 1}});
-  l.draw(std::vector<glm::vec2>{});
-  l.release();
-  l.release();
-  EXPECT_EQ(glGetError(), GL_NO_ERROR);
-}
-
 TEST(GLRenderer, ConstructTwiceAndFrame) {
   for (int i = 0; i < 2; ++i) {
     try {
-      riz::Window win(riz::WindowConfig{64, 64, "t", false, false, false});
+      riz::Window win(hiddenConfig());
       Renderer r(win.framebufferSize(), kVert, kFrag);
       EXPECT_EQ(glGetError(), GL_NO_ERROR);
       r.begin();
@@ -210,14 +190,13 @@ TEST(GLRenderer, ConstructTwiceAndFrame) {
 TEST(GLRenderer, MissingShaderThrowsAndGlfwUsable) {
   {
     try {
-      riz::Window win(riz::WindowConfig{64, 64, "t", false, false, false});
+      riz::Window win(hiddenConfig());
       EXPECT_THROW(Renderer(win.framebufferSize(), "no/such.vert", "no/such.frag"), std::runtime_error);
     } catch (const std::runtime_error& e) {
       GTEST_SKIP() << e.what();
     }
   }
-  GLFWwindow* w = makeWindow();
-  ASSERT_NE(w, nullptr);
-  glfwDestroyWindow(w);
-  glfwTerminate();
+  std::unique_ptr<riz::Window> win2;
+  ASSERT_NO_THROW(win2 = std::make_unique<riz::Window>(hiddenConfig()));
+  ASSERT_NO_THROW(riz::loadGlFunctions());
 }

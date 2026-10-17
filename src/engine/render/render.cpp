@@ -5,10 +5,9 @@
 #include <glm/vec2.hpp>
 
 #include "../render.hpp"
-#include "../io.hpp"
 
 namespace riz {
-  Renderer::Renderer(glm::ivec2 framebufferSize, const std::string& pathVert, const std::string& pathFrag) {
+  void loadGlFunctions() {
     glewExperimental = GL_TRUE;
     GLenum err = glewInit();
     if (err != GLEW_OK) {
@@ -17,6 +16,10 @@ namespace riz {
         reinterpret_cast<const char *>(glewGetErrorString(err)));
     }
     while (glGetError() != GL_NO_ERROR) {}
+  }
+
+  Renderer::Renderer(glm::ivec2 framebufferSize, const std::string& pathVert, const std::string& pathFrag) {
+    loadGlFunctions();
 
     glViewport(0, 0, framebufferSize.x, framebufferSize.y);
 

@@ -2,9 +2,10 @@
 #include <vector>
 
 #include <glm/vec2.hpp>
+#include <glm/geometric.hpp>
 #include <glm/vec3.hpp>
 
-#include "../entity.hpp"
+#include "../camera.hpp"
 
 namespace {
   constexpr float kNearPlane = 0.05f;
@@ -32,14 +33,13 @@ namespace riz {
     const std::size_t pairs = walls.size() / 2;
     vresult.reserve(pairs * 4);
 
-    const float cs = std::cos(angle);
-    const float sn = std::sin(angle);
+    const glm::vec2 f = forward();
+    const glm::vec2 r = right();
     const float tanHalf = std::tan(fov / 2);
 
     auto toCamera = [&](const glm::vec3& p) {
-      const float dx = p[0] - pos[0];
-      const float dy = p[1] - pos[1];
-      return CamPoint { dx * cs - dy * sn, dx * sn + dy * cs, p[2] };
+      const glm::vec2 d = glm::vec2(p.x, p.y) - pos;
+      return CamPoint { glm::dot(d, r), glm::dot(d, f), p[2] };
     };
 
     for (std::size_t i = 0; i < pairs; ++i) {
@@ -74,5 +74,21 @@ namespace riz {
   
   void Camera::setAngle(float newAngle) {
     angle = newAngle;
+  }
+
+  glm::vec2 Camera::getPosition() const {
+    return pos;
+  }
+
+  float Camera::getAngle() const {
+    return angle;
+  }
+
+  glm::vec2 Camera::forward() const {
+    return glm::vec2(std::sin(angle), std::cos(angle));
+  }
+
+  glm::vec2 Camera::right() const {
+    return glm::vec2(std::cos(angle), -std::sin(angle));
   }
 }
