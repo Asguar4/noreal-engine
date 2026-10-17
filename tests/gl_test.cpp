@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 #include "engine/platform.hpp"
 #include "engine/render.hpp"
@@ -41,8 +42,8 @@ GLFWwindow* makeWindow() {
   return w;
 }
 
-riz::Vector<glm::vec2> verts(size_t n) {
-  riz::Vector<glm::vec2> v;
+std::vector<glm::vec2> verts(size_t n) {
+  std::vector<glm::vec2> v;
   v.resize(n, glm::vec2{0.f, 0.f});
   for (size_t i = 0; i < n; ++i)
     v[i] = glm::vec2{(i % 4 < 2) ? -0.5f : 0.5f, (i % 2) ? -0.5f : 0.5f};
@@ -62,7 +63,7 @@ GLuint currentProgram() {
   glGetIntegerv(GL_CURRENT_PROGRAM, &p);
   return static_cast<GLuint>(p);
 }
-}  // namespace
+}
 
 class GL : public ::testing::Test {
 protected:
@@ -81,7 +82,7 @@ TEST_F(GL, BatchInitReleaseHandles) {
   RenderBatch b;
   b.init(kVert, kFrag);
   ASSERT_EQ(glGetError(), GL_NO_ERROR);
-  b.draw(verts(4));  // leaves program bound
+  b.draw(verts(4));
   GLuint prog = currentProgram();
   EXPECT_TRUE(glIsProgram(prog));
   EXPECT_TRUE(anyBuf());
@@ -104,7 +105,7 @@ TEST_F(GL, BatchMove) {
     prog = currentProgram();
     RenderBatch c(std::move(b));
     {
-      RenderBatch dead(std::move(b));  // moved-from: no-op
+      RenderBatch dead(std::move(b));
     }
     EXPECT_TRUE(glIsProgram(prog));
     RenderBatch d;
@@ -119,7 +120,7 @@ TEST_F(GL, BatchMove) {
 TEST_F(GL, DrawVariousCounts) {
   RenderBatch b;
   b.init(kVert, kFrag);
-  b.draw(riz::Vector<glm::vec2>{});
+  b.draw(std::vector<glm::vec2>{});
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
   b.draw(verts(3));
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
@@ -137,7 +138,7 @@ TEST_F(GL, DrawPixels) {
   glClear(GL_COLOR_BUFFER_BIT);
   RenderBatch b;
   b.init(kVert, kFrag);
-  riz::Vector<glm::vec2> v{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
+  std::vector<glm::vec2> v{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
   b.draw(v);
   unsigned char px[4] = {0, 0, 0, 0};
   glReadPixels(32, 32, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, px);
@@ -181,8 +182,8 @@ TEST_F(GL, CompileErrorHasLogAndCleansUp) {
 TEST_F(GL, RenderLineLifecycle) {
   RenderLine l;
   l.init(kVert, kFrag);
-  l.draw(riz::Vector<glm::vec2>{{0, 0}, {1, 1}});
-  l.draw(riz::Vector<glm::vec2>{});
+  l.draw(std::vector<glm::vec2>{{0, 0}, {1, 1}});
+  l.draw(std::vector<glm::vec2>{});
   l.release();
   l.release();
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
@@ -195,7 +196,7 @@ TEST(GLRenderer, ConstructTwiceAndFrame) {
       Renderer r(win.framebufferSize(), kVert, kFrag);
       EXPECT_EQ(glGetError(), GL_NO_ERROR);
       r.begin();
-      riz::Vector<glm::vec2> v{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
+      std::vector<glm::vec2> v{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
       win.pollEvents();
       r.draw(v);
       win.swapBuffers();

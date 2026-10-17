@@ -4,28 +4,26 @@
 #include <exception>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/trigonometric.hpp>
 
-#include "containers/vector.hpp"
 #include "engine/entity.hpp"
 #include "engine/input.hpp"
 #include "engine/platform.hpp"
 #include "engine/render.hpp"
 
 namespace {
-  // Application-level player state (the engine has no entity type yet).
   struct Player {
-    glm::vec2 pos;   // world units
-    float angle;     // radians, heading = (sin a, cos a)
-    float fov;       // DEGREES; converted with glm::radians for riz::Camera
+    glm::vec2 pos;
+    float angle;
+    float fov;
   };
 
   constexpr long kMaxSmokeFrames = 100000;
 
-  // Parses the whole string as an integer in [1, kMaxSmokeFrames].
   bool parseSmokeFrames(const char* text, std::size_t& out) {
     if (!text || !*text) return false;
     for (const char* c = text; *c; ++c) {
@@ -40,7 +38,6 @@ namespace {
 }
 
 int main(int argc, char* argv[]) {
-  // Hidden automated mode: game --smoke-frames N runs N frames in a hidden window, then exits with 0.
   std::size_t smokeFrames = 0;
   riz::WindowConfig config;
   if (argc >= 2 && std::string(argv[1]) == "--smoke-frames") {
@@ -58,12 +55,12 @@ int main(int argc, char* argv[]) {
     const riz::Input& input = window.input();
 
     Player player = { {0, 0}, 0, 30 };
-    riz::Vector<glm::vec3> walls {
+    std::vector<glm::vec3> walls {
       glm::vec3 { 3, 5, 4},
       glm::vec3 {-3, 5, 4}
     };
     riz::Camera cam(glm::radians(player.fov));
-    riz::Vector<glm::vec2> vertices;
+    std::vector<glm::vec2> vertices;
 
     const float move = 0.005f;
     std::size_t frame = 0;

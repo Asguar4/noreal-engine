@@ -46,7 +46,7 @@ namespace riz {
 }
 
 namespace {
-  void onKeyCb(GLFWwindow* handle, int key, int /*scancode*/, int action, int /*mods*/) {
+  void onKeyCb(GLFWwindow* handle, int key, int, int action, int) {
     auto* self = static_cast<riz::Window*>(glfwGetWindowUserPointer(handle));
     if (self) self->input().onKey(riz::keyFromGlfw(key), riz::keyActionFromGlfw(action));
   }

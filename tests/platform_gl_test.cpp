@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 #include "engine/platform.hpp"
 #include "engine/render.hpp"
@@ -19,9 +20,9 @@ const std::string kVert = std::string(RIZ_SOURCE_DIR) + "/shaders/default.vert";
 const std::string kFrag = std::string(RIZ_SOURCE_DIR) + "/shaders/default.frag";
 
 riz::WindowConfig hiddenConfig() {
-  return riz::WindowConfig{64, 64, "t", false, /*visible*/ false, /*captureCursor*/ false};
+  return riz::WindowConfig{64, 64, "t", false, false, false};
 }
-}  // namespace
+}
 
 TEST(GLWindow, HiddenLifecycle) {
   try {
@@ -81,7 +82,7 @@ TEST(GLWindow, WithRenderer) {
     glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &profile);
     EXPECT_NE(profile & GL_CONTEXT_CORE_PROFILE_BIT, 0);
 
-    riz::Vector<glm::vec2> quad{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
+    std::vector<glm::vec2> quad{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
     for (int i = 0; i < 2; ++i) {
       render.begin();
       win.pollEvents();

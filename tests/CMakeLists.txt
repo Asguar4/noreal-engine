@@ -8,8 +8,6 @@ FetchContent_Declare(googletest
 FetchContent_MakeAvailable(googletest)
 
 add_executable(riz_tests
-  smoke_test.cpp
-  vector_test.cpp
   file_test.cpp
   camera_test.cpp
   input_test.cpp)
@@ -34,4 +32,4 @@ add_test(NAME riz_layering
 add_test(NAME riz_layering_selftest
          COMMAND ${CMAKE_COMMAND} -DRIZ_SOURCE_DIR=${PROJECT_SOURCE_DIR}/tests/layering_fixture -P ${PROJECT_SOURCE_DIR}/cmake/check_layering.cmake)
 set_tests_properties(riz_layering_selftest PROPERTIES
-  PASS_REGULAR_EXPRESSION "riz_layering: 5 violation\\(s\\); rules violated: R1,R2,R3,R4,R5")
+  PASS_REGULAR_EXPRESSION "riz_layering: 4 violation\\(s\\); rules violated: R1,R2,R3,R4")

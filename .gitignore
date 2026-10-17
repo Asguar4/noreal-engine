@@ -1,10 +1,10 @@
 include/
 lib/
 
-*.bat
 build/
 .claude/
 .workflow
+CLAUDE.md
 
 /CMakeFiles/
 build-*/

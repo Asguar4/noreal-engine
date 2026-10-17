@@ -14,7 +14,7 @@ namespace {
 std::string tmpPath(const char* n) {
   return (std::filesystem::temp_directory_path() / n).string();
 }
-}  // namespace
+}
 
 TEST(File, Missing) {
   riz::File f(tmpPath("riz_does_not_exist_xyz"));

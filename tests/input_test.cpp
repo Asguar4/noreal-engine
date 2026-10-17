@@ -25,9 +25,8 @@ bool sameBits(float a, float b) {
   std::memcpy(&y, &b, sizeof y);
   return x == y;
 }
-}  // namespace
+}
 
-// ---- every public member of Input is noexcept ----
 static_assert(noexcept(std::declval<const Input&>().isDown(Key::A)));
 static_assert(noexcept(std::declval<const Input&>().wasPressed(Key::A)));
 static_assert(noexcept(std::declval<const Input&>().wasReleased(Key::A)));
@@ -99,7 +98,6 @@ TEST(Input, InvalidKeysIgnored) {
     EXPECT_FALSE(in.wasPressed(k));
     EXPECT_FALSE(in.wasReleased(k));
   }
-  // and no real key was touched
   for (std::size_t k = 1; k < static_cast<std::size_t>(Key::Count); ++k) {
     EXPECT_FALSE(in.isDown(static_cast<Key>(k))) << k;
   }
@@ -114,7 +112,7 @@ TEST(Input, CursorFirstEventIsZeroThenSums) {
   EXPECT_EQ(in.mouseDelta(), glm::vec2(4.5f, -2.f));
   in.beginFrame();
   EXPECT_EQ(in.mouseDelta(), glm::vec2(0.f, 0.f));
-  in.onCursorPos(105.5, 50.0);   // relative to the kept last position (104.5, 48)
+  in.onCursorPos(105.5, 50.0);
   EXPECT_EQ(in.mouseDelta(), glm::vec2(1.f, 2.f));
 }
 
@@ -135,7 +133,6 @@ TEST(Input, CursorBitExactFloatSum) {
   EXPECT_TRUE(in.mouseDelta().y == ey);
 }
 
-// ---- GLFW key mapping ----
 TEST(KeyMap, LettersDigitsAndSpecials) {
   for (int i = 0; i < 26; ++i) {
     EXPECT_EQ(riz::keyFromGlfw(GLFW_KEY_A + i), static_cast<Key>(static_cast<int>(Key::A) + i)) << i;
@@ -190,9 +187,7 @@ TEST(KeyMap, Actions) {
   EXPECT_EQ(riz::keyActionFromGlfw(42), KeyAction::Release);
 }
 
-// ---- equivalence with the old main.cpp callbacks (commit 922835b) ----
 namespace {
-// Reference model: the old callbacks' logic, verbatim, on ints/doubles.
 struct LegacyInput {
   bool w = false, a = false, s = false, d = false, o = false, p = false;
   double lastX = 0.0;
@@ -229,7 +224,7 @@ struct LegacyInput {
     lastY = ypos;
   }
 };
-}  // namespace
+}
 
 TEST(InputLegacy, EquivalentToOldCallbacks) {
   const int keys[] = {GLFW_KEY_W, GLFW_KEY_A, GLFW_KEY_S, GLFW_KEY_D, GLFW_KEY_O,
@@ -247,7 +242,6 @@ TEST(InputLegacy, EquivalentToOldCallbacks) {
   Input in;
 
   for (int frame = 0; frame < 2000; ++frame) {
-    // old frame protocol: read, then zero, then the poll delivers events
     old.mousedx = 0.f;
     old.close = false;
     in.beginFrame();

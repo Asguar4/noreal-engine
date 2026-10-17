@@ -9,11 +9,9 @@
 #include <glm/vec2.hpp>
 
 #include "./iRender.hpp"
-#include "../../containers/vector.hpp"
 #include "../io.hpp"
 
 namespace {
-  // Delete the GL object on scope exit unless the id was zeroed (ownership handed over).
   struct ShaderGuard {
     GLuint id;
     ~ShaderGuard() { if (id) glDeleteShader(id); }
@@ -96,7 +94,6 @@ namespace {
 }
 
 namespace riz {
-  // ---- RenderLine ----
 
   RenderLine::~RenderLine() {
     release();
@@ -149,21 +146,19 @@ namespace riz {
     lineCreate();
   }
 
-  void RenderLine::draw(const Vector<glm::vec2>& vertices) {
+  void RenderLine::draw(const std::vector<glm::vec2>& vertices) {
     if (vertices.size() < 2) return;
 
     glUseProgram(shader);
     glBindVertexArray(vao);
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec2) * 2, &vertices[0]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec2) * 2, vertices.data());
     glDrawArrays(GL_LINES, 0, 2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
   }
-
-  // ---- RenderBatch ----
 
   RenderBatch::~RenderBatch() {
     release();
@@ -240,13 +235,13 @@ namespace riz {
     }
   }
 
-  void RenderBatch::draw(const Vector<glm::vec2>& vertices) {
+  void RenderBatch::draw(const std::vector<glm::vec2>& vertices) {
     const std::size_t maxVerts = (kMaxBatchVertices / 4) * 4;
     const std::size_t count = std::min(vertices.size(), maxVerts) / 4 * 4;
     if (count == 0) return;
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(count * sizeof(glm::vec2)), &vertices[0]);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, static_cast<GLsizeiptr>(count * sizeof(glm::vec2)), vertices.data());
 
     glUseProgram(shader);
     glBindVertexArray(vao);

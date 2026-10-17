@@ -16,7 +16,6 @@ namespace riz {
         std::string("GLEW initialization failed: ") +
         reinterpret_cast<const char *>(glewGetErrorString(err)));
     }
-    // glewInit may leave a harmless GL_INVALID_ENUM in core profile
     while (glGetError() != GL_NO_ERROR) {}
 
     glViewport(0, 0, framebufferSize.x, framebufferSize.y);
@@ -29,7 +28,7 @@ namespace riz {
     glClear(GL_COLOR_BUFFER_BIT);
   }
 
-  void Renderer::draw(const Vector<glm::vec2>& quadVertices) {
+  void Renderer::draw(const std::vector<glm::vec2>& quadVertices) {
     batch.draw(quadVertices);
   }
 }

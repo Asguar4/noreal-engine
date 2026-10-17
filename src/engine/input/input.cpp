@@ -1,7 +1,6 @@
 #include "../input.hpp"
 
 namespace {
-  // Valid, real keys are strictly between Unknown and Count.
   bool valid(riz::Key key) noexcept {
     const auto k = static_cast<std::size_t>(key);
     return k > 0 && k < static_cast<std::size_t>(riz::Key::Count);

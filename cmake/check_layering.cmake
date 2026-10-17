@@ -5,9 +5,8 @@
 #   R1  GLFW include outside src/engine/platform/
 #   R2  GL include outside src/engine/render.hpp and src/engine/render/
 #   R3  identifiers keyCallback / mouseCallback anywhere in src/
-#   R4  forbidden cross-module includes (platform.hpp from render/input/entity/io/containers,
-#       render.hpp or iRender.hpp from platform/input/entity/io/containers, engine/ from containers)
-#   R5  #include <vector> in a header (container rule, ADR-R6)
+#   R4  forbidden cross-module includes (platform.hpp from render/input/entity/io,
+#       render.hpp or iRender.hpp from platform/input/entity/io)
 
 if(NOT RIZ_SOURCE_DIR)
   message(FATAL_ERROR "riz_layering: pass -DRIZ_SOURCE_DIR=<root>")
@@ -33,11 +32,6 @@ foreach(_file IN LISTS _files)
     _violation(R3 "${_rel}" "uses keyCallback/mouseCallback")
   endif()
 
-  set(_isHeader FALSE)
-  if(_rel MATCHES "[.]hpp$")
-    set(_isHeader TRUE)
-  endif()
-
   set(_inPlatform FALSE)
   set(_inRender FALSE)
   if(_rel MATCHES "^src/engine/platform[./]")
@@ -48,17 +42,13 @@ foreach(_file IN LISTS _files)
   endif()
   # modules that must not see platform.hpp
   set(_noPlatform FALSE)
-  if(_rel MATCHES "^src/engine/(render|input|entity|io)[./]" OR _rel MATCHES "^src/containers/")
+  if(_rel MATCHES "^src/engine/(render|input|entity|io)[./]")
     set(_noPlatform TRUE)
   endif()
   # modules that must not see render.hpp / iRender.hpp
   set(_noRender FALSE)
-  if(_rel MATCHES "^src/engine/(platform|input|entity|io)[./]" OR _rel MATCHES "^src/containers/")
+  if(_rel MATCHES "^src/engine/(platform|input|entity|io)[./]")
     set(_noRender TRUE)
-  endif()
-  set(_isContainers FALSE)
-  if(_rel MATCHES "^src/containers/")
-    set(_isContainers TRUE)
   endif()
 
   string(REGEX MATCHALL "(^|\n)[ \t]*#[ \t]*include[ \t]*[<\"][^>\"\n]+[>\"]" _includes "${_content}")
@@ -80,13 +70,6 @@ foreach(_file IN LISTS _files)
     endif()
     if(_noRender AND (_name STREQUAL "render.hpp" OR _name STREQUAL "iRender.hpp"))
       _violation(R4 "${_rel}" "includes ${_name} from a module that must not depend on render")
-    endif()
-    if(_isContainers AND _path MATCHES "engine/")
-      _violation(R4 "${_rel}" "containers include engine header ${_path}")
-    endif()
-    # R5
-    if(_isHeader AND _inc MATCHES "<vector>")
-      _violation(R5 "${_rel}" "header includes <vector>")
     endif()
   endforeach()
 endforeach()

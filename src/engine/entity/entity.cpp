@@ -1,10 +1,10 @@
 #include <cmath>
+#include <vector>
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
 #include "../entity.hpp"
-#include "../../containers/vector.hpp"
 
 namespace {
   constexpr float kNearPlane = 0.05f;
@@ -21,14 +21,14 @@ namespace riz {
   Camera::Camera(float initFov) :
     pos(glm::vec2 {0, 0}), angle(0), fov(initFov) {}
 
-  Vector<glm::vec2> Camera::worldToScreen(const Vector<glm::vec3>& walls) const {
-    Vector<glm::vec2> r;
+  std::vector<glm::vec2> Camera::worldToScreen(const std::vector<glm::vec3>& walls) const {
+    std::vector<glm::vec2> r;
     worldToScreen(walls, r);
     return r;
   }
 
-  void Camera::worldToScreen(const Vector<glm::vec3>& walls, Vector<glm::vec2>& vresult) const {
-    vresult.resize(0);
+  void Camera::worldToScreen(const std::vector<glm::vec3>& walls, std::vector<glm::vec2>& vresult) const {
+    vresult.clear();
     const std::size_t pairs = walls.size() / 2;
     vresult.reserve(pairs * 4);
 
@@ -62,9 +62,8 @@ namespace riz {
       for (const CamPoint& pt : { a, b }) {
         const float x = pt.lateral / (pt.depth * tanHalf);
         const float y = pt.height / pt.depth;
-        vresult.resize(vresult.size() + 2);
-        vresult[vresult.size() - 2] = glm::vec2{x,  y};
-        vresult[vresult.size() - 1] = glm::vec2{x, -y};
+        vresult.emplace_back(x, y);
+        vresult.emplace_back(x, -y);
       }
     }
   }

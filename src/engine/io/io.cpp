@@ -8,7 +8,6 @@
 #include "../io.hpp"
 
 namespace {
-  // Shared immutable empty string, returned for invalid / moved-from objects.
   const char kEmpty[1] = { '\0' };
 }
 
