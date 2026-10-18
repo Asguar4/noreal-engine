@@ -23,9 +23,9 @@ namespace {
   constexpr float kMapViewHeight = 10.f;
   constexpr float kStepSeconds = static_cast<float>(riz::kDefaultStepSeconds);
   constexpr float kLegacyMovePerFrame = 0.005f;
-  constexpr float kMoveSpeed = kLegacyMovePerFrame * 60.f;
+  constexpr float kMoveSpeed = 2.f * kLegacyMovePerFrame * 60.f;
   constexpr float kMouseSensitivity = 0.002f;
-  static_assert(kMoveSpeed * kStepSeconds == kLegacyMovePerFrame, "one 1/60 s step moves exactly one old frame");
+  static_assert(kMoveSpeed * kStepSeconds == 2.f * kLegacyMovePerFrame, "one 1/60 s step moves exactly two old frames");
 
   constexpr long kMaxSmokeFrames = 100000;
 
