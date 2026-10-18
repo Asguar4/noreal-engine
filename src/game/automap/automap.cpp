@@ -16,19 +16,19 @@ namespace riz::game {
     }
   }
 
-  WallQuad lineQuad(const TopDownCamera& camera, MapLine line, float thicknessPixels) {
-    const glm::vec2 sa = camera.worldToScreen(glm::vec2{line.a});
-    const glm::vec2 sb = camera.worldToScreen(glm::vec2{line.b});
+  ScreenQuad lineQuad(const TopDownCamera& camera, MapLine line, float thicknessPixels) {
+    const glm::vec2 sa = camera.worldToScreen(line.a);
+    const glm::vec2 sb = camera.worldToScreen(line.b);
     const glm::vec2 half = glm::vec2(camera.getViewportSize()) * 0.5f;
     const glm::vec2 d = (sb - sa) * half;
     const float len = glm::length(d);
     const glm::vec2 dir = len > 1e-6f ? d / len : glm::vec2(1.f, 0.f);
     const glm::vec2 n = glm::vec2(-dir.y, dir.x) * (thicknessPixels * 0.5f) / half;
-    return WallQuad{sa + n, sa - n, sb + n, sb - n};
+    return ScreenQuad{sa + n, sa - n, sb + n, sb - n};
   }
 
   void linesToQuads(const TopDownCamera& camera, const std::vector<MapLine>& lines, float thicknessPixels,
-                    std::vector<WallQuad>& out) {
+                    std::vector<ScreenQuad>& out) {
     out.clear();
     out.reserve(lines.size());
     for (const MapLine& line : lines) {
@@ -36,10 +36,10 @@ namespace riz::game {
     }
   }
 
-  WallQuad dotQuad(const TopDownCamera& camera, glm::vec2 position, float sizePixels) {
+  ScreenQuad dotQuad(const TopDownCamera& camera, glm::vec2 position, float sizePixels) {
     const glm::vec2 c = camera.worldToScreen(position);
     const glm::vec2 h = glm::vec2(sizePixels) / glm::vec2(camera.getViewportSize());
-    return WallQuad{c + glm::vec2(-h.x, h.y), c + glm::vec2(-h.x, -h.y),
+    return ScreenQuad{c + glm::vec2(-h.x, h.y), c + glm::vec2(-h.x, -h.y),
                     c + glm::vec2(h.x, h.y), c + glm::vec2(h.x, -h.y)};
   }
 }

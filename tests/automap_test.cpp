@@ -108,7 +108,7 @@ TEST(Automap, WallLinesEmptyTree) {
 TEST(Automap, PlayerDotIsPixelSquare) {
   riz::TopDownCamera camera = makeCamera();
   camera.setPosition(glm::vec2(1.f, 2.f));
-  const riz::WallQuad d = riz::game::dotQuad(camera, glm::vec2(1.f, 2.f), 8.f);
+  const riz::ScreenQuad d = riz::game::dotQuad(camera, glm::vec2(1.f, 2.f), 8.f);
   const glm::vec2 c = camera.worldToScreen(glm::vec2(1.f, 2.f));
   expectNear(c, glm::vec2(0.f, 0.f), 1e-6f);
   expectNear(d.startTop, c + glm::vec2(-0.01f, 8.f / 600.f), 1e-6f);
@@ -126,7 +126,7 @@ TEST(Automap, PlayerDotIgnoresZoomAndAspect) {
   for (const float zoom : {2.f, 0.5f}) {
     camera.setZoom(zoom);
     const glm::vec2 world(3.f, -1.f);
-    const riz::WallQuad d = riz::game::dotQuad(camera, world, 6.f);
+    const riz::ScreenQuad d = riz::game::dotQuad(camera, world, 6.f);
     expectNear(mid(d.startTop, d.endBottom), camera.worldToScreen(world), 1e-6f);
     EXPECT_EQ(d.startTop.x, d.startBottom.x);
     EXPECT_EQ(d.endTop.x, d.endBottom.x);
@@ -144,18 +144,18 @@ TEST(Automap, LineQuadThicknessInPixels) {
   const glm::vec2 half(400.f, 300.f);
 
   const MapLine horizontal{glm::vec2(-2.f, 1.f), glm::vec2(3.f, 1.f)};
-  const riz::WallQuad h = riz::game::lineQuad(camera, horizontal, 2.f);
+  const riz::ScreenQuad h = riz::game::lineQuad(camera, horizontal, 2.f);
   expectNear(h.startTop - h.startBottom, glm::vec2(0.f, 2.f / 300.f), 1e-6f);
   expectNear(mid(h.startTop, h.startBottom), camera.worldToScreen(horizontal.a), 1e-6f);
 
   const MapLine vertical{glm::vec2(1.f, -2.f), glm::vec2(1.f, 3.f)};
-  const riz::WallQuad v = riz::game::lineQuad(camera, vertical, 2.f);
+  const riz::ScreenQuad v = riz::game::lineQuad(camera, vertical, 2.f);
   EXPECT_NEAR(std::abs((v.startTop - v.startBottom).x), 2.f / 400.f, 1e-6f);
   EXPECT_NEAR((v.startTop - v.startBottom).y, 0.f, 1e-6f);
 
   camera.setZoom(2.f);
   const MapLine diagonal{glm::vec2(-1.f, -1.f), glm::vec2(1.f, -1.f + 2.f * std::tan(kPi / 6.f))};
-  const riz::WallQuad q = riz::game::lineQuad(camera, diagonal, 2.f);
+  const riz::ScreenQuad q = riz::game::lineQuad(camera, diagonal, 2.f);
   const glm::vec2 across = (q.startTop - q.startBottom) * half;
   EXPECT_NEAR(glm::length(across), 2.f, 1e-3f);
   const glm::vec2 along = (camera.worldToScreen(diagonal.b) - camera.worldToScreen(diagonal.a)) * half;
@@ -165,7 +165,7 @@ TEST(Automap, LineQuadThicknessInPixels) {
 TEST(Automap, LineQuadDegenerateLine) {
   const riz::TopDownCamera camera = makeCamera();
   const MapLine point{glm::vec2(1.f, 1.f), glm::vec2(1.f, 1.f)};
-  const riz::WallQuad q = riz::game::lineQuad(camera, point, 2.f);
+  const riz::ScreenQuad q = riz::game::lineQuad(camera, point, 2.f);
   for (const glm::vec2 c : {q.startTop, q.startBottom, q.endTop, q.endBottom}) {
     EXPECT_TRUE(std::isfinite(c.x));
     EXPECT_TRUE(std::isfinite(c.y));
@@ -180,12 +180,12 @@ TEST(Automap, LinesToQuadsClearsAndKeepsOrder) {
     {glm::vec2(-4.f, 4.f), glm::vec2(2.f, 4.f)},
     {glm::vec2(2.f, 1.f), glm::vec2(2.f, 3.f)},
     {glm::vec2(0.f, 0.f), glm::vec2(0.f, 0.6f)}};
-  std::vector<riz::WallQuad> out(5);
+  std::vector<riz::ScreenQuad> out(5);
   riz::game::linesToQuads(camera, lines, 3.f, out);
   ASSERT_EQ(out.size(), lines.size());
   for (std::size_t i = 0; i < lines.size(); ++i) {
-    const riz::WallQuad expected = riz::game::lineQuad(camera, lines[i], 3.f);
-    EXPECT_EQ(std::memcmp(&out[i], &expected, sizeof(riz::WallQuad)), 0);
+    const riz::ScreenQuad expected = riz::game::lineQuad(camera, lines[i], 3.f);
+    EXPECT_EQ(std::memcmp(&out[i], &expected, sizeof(riz::ScreenQuad)), 0);
   }
 }
 
@@ -196,13 +196,13 @@ TEST(Automap, CameraCentredOnPlayer) {
   camera.setPosition(player);
   std::vector<std::uint32_t> scratch;
   std::vector<MapLine> lines;
-  std::vector<riz::WallQuad> quads;
+  std::vector<riz::ScreenQuad> quads;
   riz::game::wallLinesFrontToBack(level.tree, player, scratch, lines);
   const std::size_t wallCount = lines.size();
-  riz::game::linesToQuads(camera, lines, riz::game::kDefaultLineThicknessPixels, quads);
+  riz::game::linesToQuads(camera, lines, riz::game::kWallLineThicknessPixels, quads);
   quads.push_back(riz::game::dotQuad(camera, player, riz::game::kPlayerDotSizePixels));
   ASSERT_EQ(quads.size(), wallCount + 1u);
-  const riz::WallQuad& dot = quads.back();
+  const riz::ScreenQuad& dot = quads.back();
   expectNear(mid(dot.startTop, dot.endBottom), glm::vec2(0.f, 0.f), 1e-6f);
 
   const glm::vec2 he = camera.visibleHalfExtent();

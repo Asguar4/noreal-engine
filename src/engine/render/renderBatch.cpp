@@ -129,7 +129,7 @@ namespace riz {
     }
   }
 
-  void RenderBatch::draw(const std::vector<WallQuad>& quads) {
+  void RenderBatch::draw(const std::vector<ScreenQuad>& quads) {
     const std::size_t count = std::min(quads.size(), kMaxBatchQuads);
     if (count == 0) return;
 

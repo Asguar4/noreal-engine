@@ -7,7 +7,6 @@
 #include <glm/geometric.hpp>
 #include <glm/vec2.hpp>
 
-#include "engine/camera.hpp"
 #include "engine/movement.hpp"
 
 static_assert(noexcept(riz::moveDirection(0.f, 0.f, glm::vec2{}, glm::vec2{})));
@@ -30,9 +29,7 @@ struct Basis {
 };
 
 Basis basisAt(float angle) {
-  riz::Camera c(0.5f);
-  c.setAngle(angle);
-  return Basis{c.forward(), c.right()};
+  return Basis{glm::vec2(std::sin(angle), std::cos(angle)), glm::vec2(std::cos(angle), -std::sin(angle))};
 }
 
 bool bitEqual(const glm::vec2& x, const glm::vec2& y) {

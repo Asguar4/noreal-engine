@@ -10,7 +10,7 @@
 #include <glm/vec2.hpp>
 
 #include "../render.hpp"
-#include "../wallQuad.hpp"
+#include "../screenQuad.hpp"
 
 namespace riz {
   template <typename Traits>
@@ -60,7 +60,7 @@ namespace riz {
     kQuadStartTop, kQuadStartBottom, kQuadEndBottom,
     kQuadStartTop, kQuadEndBottom, kQuadEndTop };
 
-  inline std::array<glm::vec2, kQuadVertexCount> quadVertices(const WallQuad& quad) noexcept {
+  inline std::array<glm::vec2, kQuadVertexCount> quadVertices(const ScreenQuad& quad) noexcept {
     std::array<glm::vec2, kQuadVertexCount> v;
     v[kQuadStartTop] = quad.startTop;
     v[kQuadStartBottom] = quad.startBottom;
@@ -90,7 +90,7 @@ namespace riz {
     RenderBatch& operator=(RenderBatch&&) noexcept = default;
 
     void init(const std::string& pathVert, const std::string& pathFrag);
-    void draw(const std::vector<WallQuad>& quads);
+    void draw(const std::vector<ScreenQuad>& quads);
     void release() noexcept;
   };
 }

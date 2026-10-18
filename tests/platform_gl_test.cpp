@@ -83,7 +83,7 @@ TEST(GLWindow, WithRenderer) {
     glGetIntegerv(GL_CONTEXT_PROFILE_MASK, &profile);
     EXPECT_NE(profile & GL_CONTEXT_CORE_PROFILE_BIT, 0);
 
-    std::vector<riz::WallQuad> quad{riz::WallQuad{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}}};
+    std::vector<riz::ScreenQuad> quad{riz::ScreenQuad{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}}};
     for (int i = 0; i < 2; ++i) {
       render.begin();
       win.pollEvents();

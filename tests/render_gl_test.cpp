@@ -30,11 +30,11 @@ riz::WindowConfig hiddenConfig() {
   return riz::WindowConfig{64, 64, "t", false, false, false};
 }
 
-std::vector<riz::WallQuad> quads(size_t n) {
-  return std::vector<riz::WallQuad>(n, riz::WallQuad{{-0.5f, 0.5f}, {-0.5f, -0.5f}, {0.5f, 0.5f}, {0.5f, -0.5f}});
+std::vector<riz::ScreenQuad> quads(size_t n) {
+  return std::vector<riz::ScreenQuad>(n, riz::ScreenQuad{{-0.5f, 0.5f}, {-0.5f, -0.5f}, {0.5f, 0.5f}, {0.5f, -0.5f}});
 }
 
-const riz::WallQuad kFullScreen{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
+const riz::ScreenQuad kFullScreen{{-1, 1}, {-1, -1}, {1, 1}, {1, -1}};
 
 bool anyVao() {
   for (GLuint i = 1; i < 32; ++i) if (glIsVertexArray(i)) return true;
@@ -110,7 +110,7 @@ TEST_F(GL, BatchMove) {
 TEST_F(GL, DrawVariousCounts) {
   RenderBatch b;
   b.init(kVert, kFrag);
-  b.draw(std::vector<riz::WallQuad>{});
+  b.draw(std::vector<riz::ScreenQuad>{});
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
   b.draw(quads(2));
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
@@ -128,7 +128,7 @@ TEST_F(GL, DrawPixels) {
   glClear(GL_COLOR_BUFFER_BIT);
   RenderBatch b;
   b.init(kVert, kFrag);
-  b.draw(std::vector<riz::WallQuad>{kFullScreen});
+  b.draw(std::vector<riz::ScreenQuad>{kFullScreen});
   unsigned char px[4] = {0, 0, 0, 0};
   glReadPixels(32, 32, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, px);
   EXPECT_EQ(glGetError(), GL_NO_ERROR);
@@ -141,7 +141,7 @@ TEST_F(GL, DrawPixelsCoversWholeQuad) {
   glClear(GL_COLOR_BUFFER_BIT);
   RenderBatch b;
   b.init(kVert, kFrag);
-  b.draw(std::vector<riz::WallQuad>{kFullScreen});
+  b.draw(std::vector<riz::ScreenQuad>{kFullScreen});
   const int pts[5][2] = {{32, 32}, {32, 3}, {32, 60}, {3, 32}, {60, 32}};
   for (const auto& p : pts) {
     unsigned char px[4] = {0, 0, 0, 0};
@@ -191,7 +191,7 @@ TEST(GLRenderer, ConstructTwiceAndFrame) {
       Renderer r(win.framebufferSize(), kVert, kFrag);
       EXPECT_EQ(glGetError(), GL_NO_ERROR);
       r.begin();
-      std::vector<riz::WallQuad> v{kFullScreen};
+      std::vector<riz::ScreenQuad> v{kFullScreen};
       win.pollEvents();
       r.draw(v);
       win.swapBuffers();
@@ -226,7 +226,7 @@ TEST(RenderQuadLayout, IndexPattern) {
 }
 
 TEST(RenderQuadLayout, VertexOrder) {
-  const riz::WallQuad q{{1, 2}, {3, 4}, {5, 6}, {7, 8}};
+  const riz::ScreenQuad q{{1, 2}, {3, 4}, {5, 6}, {7, 8}};
   const auto v = riz::quadVertices(q);
   EXPECT_EQ(v[0], q.startTop);
   EXPECT_EQ(v[1], q.startBottom);

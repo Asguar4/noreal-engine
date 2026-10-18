@@ -7,7 +7,7 @@
 
 #include <glm/vec2.hpp>
 
-#include "./wallQuad.hpp"
+#include "./screenQuad.hpp"
 
 namespace riz {
   inline constexpr std::size_t kMaxBatchVertices = 40000;
@@ -30,7 +30,7 @@ namespace riz {
     Renderer& operator=(Renderer&&) = delete;
 
     void begin();
-    void draw(const std::vector<WallQuad>& quads);
+    void draw(const std::vector<ScreenQuad>& quads);
 
   private:
     std::unique_ptr<RenderBatch> batch;

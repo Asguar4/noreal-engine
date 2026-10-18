@@ -3,7 +3,7 @@
 #include <glm/vec2.hpp>
 
 namespace riz {
-  struct WallQuad {
+  struct ScreenQuad {
     glm::vec2 startTop;
     glm::vec2 startBottom;
     glm::vec2 endTop;

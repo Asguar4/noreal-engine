@@ -7,10 +7,11 @@
 
 #include "../containers/bsp.hpp"
 #include "../engine/topDownCamera.hpp"
-#include "../engine/wallQuad.hpp"
+#include "../engine/screenQuad.hpp"
 
 namespace riz::game {
-  inline constexpr float kDefaultLineThicknessPixels = 2.f;
+  inline constexpr float kMapViewHeight = 10.f;
+  inline constexpr float kWallLineThicknessPixels = 2.f;
   inline constexpr float kPlayerDotSizePixels = 8.f;
 
   struct MapLine {
@@ -20,8 +21,8 @@ namespace riz::game {
 
   void wallLinesFrontToBack(const bsp::Tree& tree, glm::vec2 viewPoint,
                             std::vector<std::uint32_t>& subSectorScratch, std::vector<MapLine>& out);
-  WallQuad lineQuad(const TopDownCamera& camera, MapLine line, float thicknessPixels);
+  ScreenQuad lineQuad(const TopDownCamera& camera, MapLine line, float thicknessPixels);
   void linesToQuads(const TopDownCamera& camera, const std::vector<MapLine>& lines, float thicknessPixels,
-                    std::vector<WallQuad>& out);
-  WallQuad dotQuad(const TopDownCamera& camera, glm::vec2 position, float sizePixels);
+                    std::vector<ScreenQuad>& out);
+  ScreenQuad dotQuad(const TopDownCamera& camera, glm::vec2 position, float sizePixels);
 }

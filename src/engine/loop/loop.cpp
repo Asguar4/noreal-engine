@@ -5,13 +5,6 @@
 #include <stdexcept>
 #include <utility>
 
-namespace {
-  bool valid(riz::Key key) noexcept {
-    const auto k = static_cast<std::size_t>(key);
-    return k > 0 && k < static_cast<std::size_t>(riz::Key::Count);
-  }
-}
-
 namespace riz {
   double steadyClockSeconds() noexcept {
     return std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
@@ -114,15 +107,15 @@ namespace riz {
   }
 
   bool StepInput::isDown(Key key) const noexcept {
-    return valid(key) && down[static_cast<std::size_t>(key)];
+    return isValidKey(key) && down[static_cast<std::size_t>(key)];
   }
 
   bool StepInput::wasPressed(Key key) const noexcept {
-    return valid(key) && pressed[static_cast<std::size_t>(key)];
+    return isValidKey(key) && pressed[static_cast<std::size_t>(key)];
   }
 
   bool StepInput::wasReleased(Key key) const noexcept {
-    return valid(key) && released[static_cast<std::size_t>(key)];
+    return isValidKey(key) && released[static_cast<std::size_t>(key)];
   }
 
   glm::vec2 StepInput::mouseDelta() const noexcept {
@@ -130,7 +123,7 @@ namespace riz {
   }
 
   void InputLatch::capture(const Input& frame) noexcept {
-    for (std::size_t i = 1; i < StepInput::kKeyCount; ++i) {
+    for (std::size_t i = 1; i < kKeyCount; ++i) {
       const Key k = static_cast<Key>(i);
       pending.down[i] = frame.isDown(k);
       pending.pressed[i] = pending.pressed[i] || frame.wasPressed(k);

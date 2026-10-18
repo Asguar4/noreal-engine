@@ -8,7 +8,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/trigonometric.hpp>
 
-#include "engine/camera.hpp"
 #include "engine/topDownCamera.hpp"
 
 namespace {
@@ -142,15 +141,8 @@ TEST(TopDownCamera, RotationMatchesCameraConvention) {
       EXPECT_NEAR(ahead.x, 0.f, kEps);
       EXPECT_GT(ahead.y, 0.f);
 
-      riz::Camera cam(glm::radians(90.f));
-      cam.setAngle(a);
-      cam.setPosition(p);
       const glm::vec2 a0 = p + 5.f * fwd + 1.f * right;
       const glm::vec2 b0 = p + 6.f * fwd + 1.f * right;
-      std::vector<glm::vec3> walls{{a0.x, a0.y, 1.f}, {b0.x, b0.y, 1.f}};
-      const auto r = cam.worldToScreen(walls);
-      ASSERT_EQ(r.size(), 1u);
-      EXPECT_GT(r[0].startTop.x, 0.f);
       EXPECT_GT(top.worldToScreen(a0).x, 0.f);
       EXPECT_GT(top.worldToScreen(b0).x, 0.f);
     }

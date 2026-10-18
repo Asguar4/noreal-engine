@@ -4,8 +4,8 @@
 # Rules (paths relative to <root>):
 #   R1  GLFW include outside src/engine/platform/
 #   R2  GL include outside src/engine/render/
-#   R4  forbidden cross-module includes (platform.hpp from render/input/camera/io/loop/movement/wallQuad/game,
-#       render.hpp from platform/input/camera/io/loop/movement/wallQuad/game)
+#   R4  forbidden cross-module includes (platform.hpp from render/input/topDownCamera/io/loop/movement/screenQuad/game,
+#       render.hpp from platform/input/topDownCamera/io/loop/movement/screenQuad/game)
 #   R5  internal header i<Name>.hpp included outside src/<lib>/<name>/,
 #       except by white-box tests tests/<name>_*
 #   R6  game/ header included from src/engine/ or src/containers/
@@ -46,12 +46,12 @@ foreach(_file IN LISTS _files)
   endif()
   # modules that must not see platform.hpp
   set(_noPlatform FALSE)
-  if(_rel MATCHES "^src/engine/(render|input|camera|io|loop|movement)[./]" OR _rel STREQUAL "src/engine/topDownCamera.hpp" OR _rel STREQUAL "src/engine/wallQuad.hpp" OR _rel MATCHES "^src/game/")
+  if(_rel MATCHES "^src/engine/(render|input|topDownCamera|screenQuad|io|loop|movement)[./]" OR _rel MATCHES "^src/game/")
     set(_noPlatform TRUE)
   endif()
   # modules that must not see render.hpp
   set(_noRender FALSE)
-  if(_rel MATCHES "^src/engine/(platform|input|camera|io|loop|movement)[./]" OR _rel STREQUAL "src/engine/topDownCamera.hpp" OR _rel STREQUAL "src/engine/wallQuad.hpp" OR _rel MATCHES "^src/game/")
+  if(_rel MATCHES "^src/engine/(platform|input|topDownCamera|screenQuad|io|loop|movement)[./]" OR _rel MATCHES "^src/game/")
     set(_noRender TRUE)
   endif()
 

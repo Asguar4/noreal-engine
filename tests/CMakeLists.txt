@@ -9,7 +9,6 @@ FetchContent_MakeAvailable(googletest)
 
 add_executable(riz_tests
   file_test.cpp
-  camera_test.cpp
   top_down_camera_test.cpp
   input_test.cpp
   platform_test.cpp

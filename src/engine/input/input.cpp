@@ -1,23 +1,16 @@
 #include "../input.hpp"
 
-namespace {
-  bool valid(riz::Key key) noexcept {
-    const auto k = static_cast<std::size_t>(key);
-    return k > 0 && k < static_cast<std::size_t>(riz::Key::Count);
-  }
-}
-
 namespace riz {
   bool Input::isDown(Key key) const noexcept {
-    return valid(key) && down[static_cast<std::size_t>(key)];
+    return isValidKey(key) && down[static_cast<std::size_t>(key)];
   }
 
   bool Input::wasPressed(Key key) const noexcept {
-    return valid(key) && pressed[static_cast<std::size_t>(key)];
+    return isValidKey(key) && pressed[static_cast<std::size_t>(key)];
   }
 
   bool Input::wasReleased(Key key) const noexcept {
-    return valid(key) && released[static_cast<std::size_t>(key)];
+    return isValidKey(key) && released[static_cast<std::size_t>(key)];
   }
 
   glm::vec2 Input::mouseDelta() const noexcept {
@@ -31,7 +24,7 @@ namespace riz {
   }
 
   void Input::onKey(Key key, KeyAction action) noexcept {
-    if (!valid(key)) return;
+    if (!isValidKey(key)) return;
     const auto i = static_cast<std::size_t>(key);
     switch (action) {
       case KeyAction::Press:

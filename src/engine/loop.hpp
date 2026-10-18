@@ -79,7 +79,6 @@ namespace riz {
 
   private:
     friend class InputLatch;
-    static constexpr std::size_t kKeyCount = static_cast<std::size_t>(Key::Count);
     std::array<bool, kKeyCount> down{};
     std::array<bool, kKeyCount> pressed{};
     std::array<bool, kKeyCount> released{};
