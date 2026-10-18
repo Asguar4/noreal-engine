@@ -72,6 +72,15 @@ target_include_directories(riz_bsp PUBLIC "${RIZ_BSP_PUBLIC_DIR}")
 target_link_libraries(riz_bsp PUBLIC riz_glm)
 target_compile_options(riz_bsp PRIVATE /W4 /permissive-)
 
+add_library(riz_game STATIC
+  src/game/level/level.cpp
+  src/game/player/player.cpp
+  src/game/automap/automap.cpp)
+riz_stage_headers(RIZ_GAME_PUBLIC_DIR riz_game_public game/level.hpp game/player.hpp game/automap.hpp)
+target_include_directories(riz_game PUBLIC "${RIZ_GAME_PUBLIC_DIR}")
+target_link_libraries(riz_game PUBLIC riz_engine riz_bsp riz_glm)
+target_compile_options(riz_game PRIVATE /W4 /permissive-)
+
 file(GENERATE OUTPUT "${PROJECT_BINARY_DIR}/riz_include_surface.cmake" CONTENT
 "set(RIZ_ENGINE_DIRS \"$<TARGET_PROPERTY:riz_engine,INTERFACE_INCLUDE_DIRECTORIES>\")
 set(RIZ_BSP_DIRS \"$<TARGET_PROPERTY:riz_bsp,INTERFACE_INCLUDE_DIRECTORIES>\")
@@ -81,7 +90,7 @@ add_executable(game src/main.cpp)
 set_target_properties(game PROPERTIES
   OUTPUT_NAME game
   VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
-target_link_libraries(game PRIVATE riz_engine)
+target_link_libraries(game PRIVATE riz_game riz_engine)
 target_compile_options(game PRIVATE /W4 /permissive-)
 
 option(RIZ_BUILD_TESTS "Build tests" ON)

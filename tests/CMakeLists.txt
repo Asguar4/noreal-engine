@@ -36,6 +36,12 @@ riz_stage_headers(RIZ_BSP_TESTS_WHITEBOX_DIR riz_bsp_tests_whitebox containers/b
 target_include_directories(riz_bsp_tests PRIVATE "${RIZ_BSP_TESTS_WHITEBOX_DIR}")
 gtest_discover_tests(riz_bsp_tests DISCOVERY_MODE PRE_TEST)
 
+add_executable(riz_game_tests bsp_level_test.cpp player_test.cpp automap_test.cpp)
+target_link_libraries(riz_game_tests PRIVATE riz_game GTest::gtest_main)
+riz_stage_headers(RIZ_GAME_TESTS_WHITEBOX_DIR riz_game_tests_whitebox containers/bsp/iBsp.hpp)
+target_include_directories(riz_game_tests PRIVATE "${RIZ_GAME_TESTS_WHITEBOX_DIR}")
+gtest_discover_tests(riz_game_tests DISCOVERY_MODE PRE_TEST)
+
 add_test(NAME game_smoke
          COMMAND $<TARGET_FILE:game> --smoke-frames 120
          WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
@@ -46,7 +52,7 @@ add_test(NAME riz_layering
 add_test(NAME riz_layering_selftest
          COMMAND ${CMAKE_COMMAND} -DRIZ_SOURCE_DIR=${PROJECT_SOURCE_DIR}/tests/layering_fixture -P ${PROJECT_SOURCE_DIR}/cmake/check_layering.cmake)
 set_tests_properties(riz_layering_selftest PROPERTIES
-  PASS_REGULAR_EXPRESSION "riz_layering: 6 violation\\(s\\); rules violated: R1,R2,R4,R5")
+  PASS_REGULAR_EXPRESSION "riz_layering: 8 violation\\(s\\); rules violated: R1,R2,R4,R5,R6")
 
 add_test(NAME riz_include_surface
          COMMAND ${CMAKE_COMMAND} -DRIZ_SOURCE_DIR=${PROJECT_SOURCE_DIR} -DRIZ_SURFACE_FILE=${PROJECT_BINARY_DIR}/riz_include_surface.cmake

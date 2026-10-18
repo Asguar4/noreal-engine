@@ -1,25 +1,26 @@
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <string>
 #include <vector>
 
-#include <glm/common.hpp>
 #include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/trigonometric.hpp>
 
-#include "engine/camera.hpp"
 #include "engine/input.hpp"
 #include "engine/loop.hpp"
 #include "engine/movement.hpp"
 #include "engine/platform.hpp"
 #include "engine/render.hpp"
+#include "engine/topDownCamera.hpp"
 #include "engine/wallQuad.hpp"
+#include "game/automap.hpp"
+#include "game/level.hpp"
+#include "game/player.hpp"
 
 namespace {
-  constexpr float kFovDegrees = 30.f;
+  constexpr float kMapViewHeight = 10.f;
   constexpr float kStepSeconds = static_cast<float>(riz::kDefaultStepSeconds);
   constexpr float kLegacyMovePerFrame = 0.005f;
   constexpr float kMoveSpeed = kLegacyMovePerFrame * 60.f;
@@ -60,14 +61,14 @@ int main(int argc, char* argv[]) {
     riz::Renderer render(window.framebufferSize(), "./shaders/default.vert", "./shaders/default.frag");
     const riz::Input& input = window.input();
 
-    std::vector<glm::vec3> walls {
-      glm::vec3 { 3, 5, 4},
-      glm::vec3 {-3, 5, 4}
-    };
-    riz::Camera sim(glm::radians(kFovDegrees));
-    riz::Camera view(glm::radians(kFovDegrees));
-    glm::vec2 prevPos = sim.getPosition();
-    float prevAngle = sim.getAngle();
+    const riz::game::Level level = riz::game::buildTestLevel();
+    riz::TopDownCamera mapCamera(kMapViewHeight);
+    mapCamera.setViewportSize(window.framebufferSize());
+
+    riz::game::Player sim{level.playerStart, level.playerStartAngle};
+    riz::game::Player previous = sim;
+    std::vector<std::uint32_t> subSectors;
+    std::vector<riz::game::MapLine> lines;
     std::vector<riz::WallQuad> quads;
 
     riz::FrameClock clock(riz::steadyClockSeconds);
@@ -86,23 +87,24 @@ int main(int argc, char* argv[]) {
         const riz::StepInput in = latch.take();
         if (in.wasPressed(riz::Key::Escape)) window.requestClose();
 
-        prevPos = sim.getPosition();
-        prevAngle = sim.getAngle();
+        previous = sim;
 
         float mf = (in.isDown(riz::Key::W) ? 1.f : 0.f) - (in.isDown(riz::Key::S) ? 1.f : 0.f);
         float mr = (in.isDown(riz::Key::D) ? 1.f : 0.f) - (in.isDown(riz::Key::A) ? 1.f : 0.f);
 
-        const glm::vec2 move = riz::moveDirection(mf, mr, sim.forward(), sim.right()) * (kMoveSpeed * kStepSeconds);
-        sim.setPosition(sim.getPosition() + move);
-        sim.setAngle(sim.getAngle() + in.mouseDelta().x * kMouseSensitivity);
+        const glm::vec2 move = riz::moveDirection(mf, mr, riz::game::forwardOf(sim.angle), riz::game::rightOf(sim.angle)) * (kMoveSpeed * kStepSeconds);
+        sim.position = sim.position + move;
+        sim.angle = sim.angle + in.mouseDelta().x * kMouseSensitivity;
       }
 
-      const float alpha = static_cast<float>(timestep.alpha());
-      view.setPosition(glm::mix(prevPos, sim.getPosition(), alpha));
-      view.setAngle(glm::mix(prevAngle, sim.getAngle(), alpha));
+      const riz::game::Player view = riz::game::interpolate(previous, sim, static_cast<float>(timestep.alpha()));
+      mapCamera.setPosition(view.position);
+
+      riz::game::wallLinesFrontToBack(level.tree, view.position, subSectors, lines);
+      riz::game::linesToQuads(mapCamera, lines, riz::game::kDefaultLineThicknessPixels, quads);
+      quads.push_back(riz::game::dotQuad(mapCamera, view.position, riz::game::kPlayerDotSizePixels));
 
       render.begin();
-      view.worldToScreen(walls, quads);
       render.draw(quads);
       window.swapBuffers();
       ++frame;
